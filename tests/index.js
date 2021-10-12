@@ -1,5 +1,5 @@
-const test = require('ava');
-const clickhouse = require('../src');
+import test from 'ava';
+import clickhouse from '../dist/clickhouse';
 
 const database = `test_${Date.now().toString(16)}`;
 
@@ -51,7 +51,9 @@ test('query works as expected', async t => {
     const r = await client.query(query);
 
     t.deepEqual(r, {
+      data: '',
       status: 'ok',
+      type: 'plain',
     });
   }
 });
@@ -77,7 +79,9 @@ test('selectJson is working as expected', async t => {
     const r = await client.query(query);
 
     t.deepEqual(r, {
+      data: '',
       status: 'ok',
+      type: 'plain',
     });
   }
 
@@ -131,7 +135,9 @@ test('query may insert and parse json values', async t => {
     const r = await client.query(query);
 
     t.deepEqual(r, {
+      data: '',
       status: 'ok',
+      type: 'plain',
     });
   }
   const jsonQuery = `SELECT * FROM bar FORMAT JSON`;
@@ -186,7 +192,9 @@ test('query sanitizes the params', async t => {
     const r = await client.query(query);
 
     t.deepEqual(r, {
+      data: '',
       status: 'ok',
+      type: 'plain',
     });
   }
   const res = await client.query(`SELECT * FROM qux WHERE a=? FORMAT JSON`, [
@@ -202,18 +210,32 @@ test('query sanitizes the params', async t => {
     },
   ]);
 });
+test('insert batch throws', async t => {
+  await t.throwsAsync(
+    async () => {
+      client.insertBatch('foo');
+    },
+    {message: '`table` is required for batch insert'},
+  );
+  await t.throwsAsync(
+    async () => {
+      client.insertBatch({table: 'foo'});
+    },
+    {message: '`items` are required for batch insert'},
+  );
+});
 
 test('insert batch', async t => {
   const list = [
-    'DROP TABLE IF EXISTS batch',
-    `CREATE TABLE batch
-    (
-        \`a\` Int8,
-        \`b\` String,
-        \`c\` Int8
-    )
-    ENGINE = MergeTree()
-    ORDER BY a;
+    'DROP TABLE IF EXISTS batchit',
+    `CREATE TABLE batchit
+      (
+          \`a\` Int8,
+          \`b\` String,
+          \`c\` Int8
+      )
+      ENGINE = MergeTree()
+      ORDER BY a;
     `,
   ];
 
@@ -221,28 +243,26 @@ test('insert batch', async t => {
     const r = await client.query(query);
 
     t.deepEqual(r, {
+      data: '',
       status: 'ok',
+      type: 'plain',
     });
   }
+
   const items = [
     {a: 1, b: 'foo', c: 3},
     {a: 1, b: 'baz', c: 3},
     {a: 1, b: 'bar', c: 3},
   ];
-  const insert = () =>
-    new Promise((res, rej) => {
-      client.insertBatch(
-        {
-          table: 'batch',
-          items,
-        },
-        {onSuccess: r => res(r)},
-      );
-    });
-  await insert();
-  const res = await client.query(`SELECT * FROM batch  FORMAT JSON`);
+
+  await client.insertBatch({
+    table: 'batchit',
+    items,
+  });
+  const res = await client.query(`SELECT * FROM batchit  FORMAT JSON`);
 
   t.is(res.status, 'ok');
+  t.is(res.type, 'json');
   t.is(res.rows, 3);
   t.deepEqual(res.data, items);
 });
@@ -253,21 +273,15 @@ test('insert batch handles errors', async t => {
     {a: 1, b: 'baz', c: 3},
     {a: 1, b: 'bar', c: 3},
   ];
-  const insert = () =>
-    new Promise((res, rej) => {
-      client.insertBatch(
-        {
-          table: 'that_doesnot_exist',
-          items,
-        },
-        {onSuccess: r => res(r), onError: r => rej(r)},
-      );
-    });
+
   try {
-    await insert();
+    await client.insertBatch({
+      table: 'that_doesnot_exist',
+      items,
+    });
     t.fail();
   } catch (e) {
     t.pass();
-    t.is(e.error.message, '404: Not Found');
+    t.is(e.statusCode, 404);
   }
 });
