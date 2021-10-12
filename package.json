@@ -44,7 +44,8 @@
     "husky": "^7.0.2",
     "lint-staged": "10.3.0",
     "microbundle": "^0.14.0",
-    "prettier": "2.1.1"
+    "prettier": "2.1.1",
+    "semantic-release": "^18.0.0"
   },
   "ava": {
     "require": [
@@ -57,5 +58,7 @@
   },
   "directories": {
     "test": "tests"
-  }
+  },
+
+  "release": { "branches": [ "main" ] }
 }
