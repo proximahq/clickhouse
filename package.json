@@ -1,10 +1,10 @@
 {
   "name": "@prxm/clickhouse",
-  "version": "0.0.1",
+  "version": "0.0.0-development",
   "private": false,
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/proximahq/clickhouse.git"
+    "url": "https://github.com/proximahq/clickhouse.git"
   },
   "source": "src/index.ts",
   "main": "dist/clickhouse.js",
@@ -24,7 +24,8 @@
     "test": "ava",
     "test:watch": "ava --watch",
     "prepare": "husky install",
-    "prepack": "rm -rf dist && npm run build"
+    "prepack": "rm -rf dist && npm run build",
+    "semantic-release": "semantic-release"
   },
   "dependencies": {
     "@types/debug": "^4.1.7",
@@ -59,6 +60,9 @@
   "directories": {
     "test": "tests"
   },
-
-  "release": { "branches": [ "main" ] }
+  "release": {
+    "branches": [
+      "main"
+    ]
+  }
 }
