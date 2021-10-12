@@ -23,6 +23,7 @@
     "watch": "microbundle watch --define PKG_VERSION=$npm_package_version",
     "test": "ava",
     "test:watch": "ava --watch",
+    "prepare": "husky install",
     "prepack": "rm -rf dist && npm run build"
   },
   "dependencies": {
@@ -40,13 +41,11 @@
     "ava": "3.15.0",
     "eslint": "7.17.0",
     "esm": "^3.2.25",
-    "husky": "^7.0.0",
+    "husky": "^7.0.2",
     "lint-staged": "10.3.0",
     "microbundle": "^0.14.0",
     "prettier": "2.1.1"
   },
-  
-  
   "ava": {
     "require": [
       "esm"
