@@ -1,43 +1,62 @@
 {
   "name": "@prxm/clickhouse",
-  "main": "src/index.js",
   "version": "0.0.1",
   "private": false,
   "repository": {
     "type": "git",
     "url": "git+https://github.com/proximahq/clickhouse.git"
   },
+  "source": "src/index.ts",
+  "main": "dist/clickhouse.js",
+  "module": "dist/clickhouse.m.js",
+  "exports": {
+    "require": "./dist/clickhouse.js",
+    "default": "./dist/clickhouse.m.js"
+  },
+  "types": "dist/clickhouse.d.ts",
+  "files": [
+    "dist/**.js*",
+    "dist/**/*.ts"
+  ],
   "scripts": {
+    "build": "microbundle --define PKG_VERSION=$npm_package_version",
+    "watch": "microbundle watch --define PKG_VERSION=$npm_package_version",
     "test": "ava",
-    "test:watch": "ava --watch"
-  },
-  "license": "MIT",
-  "devDependencies": {
-    "ava": "3.15.0",
-    "@commitlint/cli": "8.2.0",
-    "@commitlint/config-conventional": "8.2.0",
-    "eslint": "7.17.0",
-    "husky": "3.0.9",
-    "lint-staged": "10.3.0",
-    "prettier": "2.1.1"
-  },
-  "husky": {
-    "hooks": {
-      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS",
-      "pre-commit": "lint-staged"
-    }
-  },
-  "lint-staged": {
-    "*.md": [
-      "prettier --write"
-    ],
-    "*.js": [
-      "eslint",
-      "prettier --write"
-    ]
+    "test:watch": "ava --watch",
+    "prepack": "rm -rf dist && npm run build"
   },
   "dependencies": {
+    "@types/debug": "^4.1.7",
+    "@types/node": "16.10.3",
+    "@types/sqlstring": "^2.3.0",
+    "debug": "4.3.1",
     "sqlstring": "2.3.2",
-    "debug": "4.3.1"
+    "undici": "4.5.1"
+  },
+  "devDependencies": {
+    "@ava/typescript": "^2.0.0",
+    "@commitlint/cli": "13.1.0",
+    "@commitlint/config-conventional": "13.1.0",
+    "ava": "3.15.0",
+    "eslint": "7.17.0",
+    "esm": "^3.2.25",
+    "husky": "^7.0.0",
+    "lint-staged": "10.3.0",
+    "microbundle": "^0.14.0",
+    "prettier": "2.1.1"
+  },
+  
+  
+  "ava": {
+    "require": [
+      "esm"
+    ]
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=14"
+  },
+  "directories": {
+    "test": "tests"
   }
 }

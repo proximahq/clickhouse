@@ -1,9 +1,10 @@
 .next/**
 node_modules/**
-
+.husky
 **/*.md
 **/*.svg
 package.json
 
+build
 dist
 logs
