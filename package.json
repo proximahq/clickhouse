@@ -13,7 +13,7 @@
     "require": "./dist/clickhouse.js",
     "default": "./dist/clickhouse.m.js"
   },
-  "types": "dist/clickhouse.d.ts",
+  "types": "dist/index.d.ts",
   "files": [
     "dist/**.js*",
     "dist/**/*.ts"
