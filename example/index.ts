@@ -15,7 +15,8 @@ const client = clickhouse({...config, db: database});
 const run = async () => {
   try {
     const res = await client.query('DROP TABLE IF EXISTS test_json');
-    console.log(res);
+    const p = await client.ping();
+    console.log(p);
   } catch (error) {
     console.log(error);
   }

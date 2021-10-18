@@ -78,10 +78,10 @@ export interface ClickhouseQueryError {
 }
 
 export interface ClickHouseClient {
-  query: (...Query) => Promise<ClickhouseQueryResults>;
+  query: (...Query) => Promise<Promise<ClickhouseQueryResults>>;
   selectJson: (...Query) => Promise<ClickhouseQueryResults>;
   insertBatch: (BatchParams) => Promise<ClickhouseQueryResults>;
-  ping: (path?: string) => Promise<ClickhouseQueryResults>;
+  ping: (path?: string) => Promise<Promise<ClickhouseQueryResults>>;
 }
 
 const getHandler = ({
@@ -163,7 +163,7 @@ const clickhouse = (opts: ClickhouseOptions): ClickHouseClient => {
       const executableQuery = `${format(q, params)} ${JSON_SUFFIX};`;
 
       return new Promise((res, rej) => {
-        return exec({
+        exec({
           query: executableQuery,
           onError: rej,
           onSuccess: res,
@@ -183,7 +183,7 @@ const clickhouse = (opts: ClickhouseOptions): ClickHouseClient => {
       })}`;
 
       return new Promise((res, rej) => {
-        return exec({
+        exec({
           query: JSON.stringify(items),
           path,
           onError: rej,
@@ -195,7 +195,7 @@ const clickhouse = (opts: ClickhouseOptions): ClickHouseClient => {
     ping: p => {
       const path = p ?? `/ping`;
       return new Promise((res, rej) => {
-        return exec({
+        exec({
           path,
           method: 'GET',
           onError: rej,
