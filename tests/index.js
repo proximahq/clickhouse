@@ -210,6 +210,7 @@ test('query sanitizes the params', async t => {
     },
   ]);
 });
+
 test('insert batch throws', async t => {
   await t.throwsAsync(
     async () => {
@@ -264,6 +265,7 @@ test('insert batch', async t => {
   t.is(res.status, 'ok');
   t.is(res.type, 'json');
   t.is(res.rows, 3);
+
   t.deepEqual(res.data, items);
 });
 
@@ -284,4 +286,11 @@ test('insert batch handles errors', async t => {
     t.pass();
     t.is(e.statusCode, 404);
   }
+});
+
+test('pings', async t => {
+  const res = await client.ping();
+  t.is(res.status, 'ok');
+  t.is(res.type, 'plain');
+  t.is(res.data, 'Ok.\n');
 });

@@ -45,7 +45,7 @@ export interface ClickhouseOptions {
 }
 
 export interface Query {
-  query: string;
+  query?: string;
   params?: QueryStringParams;
 }
 
@@ -57,15 +57,31 @@ export interface BatchParams extends Query {
 export interface QueryHandler extends Query {
   path?: string;
   db?: string;
+  method?: 'GET' | 'POST';
   onSuccess: (data: any) => void;
   onError: (data: any) => void;
 }
+interface GenericData {
+  [key: string]: number | string | null;
+}
+export interface Results {
+  status: 'ok';
+  type: 'json' | 'plain';
+  statistics?: {elapsed: number; rows_read: number; bytes_read: number};
+  data?: GenericData[] | string;
+}
+
+export interface Errored {
+  error: Error;
+  status: 'error';
+  statusCode?: string;
+}
 
 export interface ClickHouseClient {
-  query: (...Query) => Promise<void>;
-  selectJson: (...Query) => Promise<void>;
-  insertBatch: (BatchParams) => Promise<void>;
-  ping: (path?: string) => Promise<void>;
+  query: (...Query) => Promise<Results | Errored>;
+  selectJson: (...Query) => Promise<Results | Errored>;
+  insertBatch: (BatchParams) => Promise<Results | Errored>;
+  ping: (path?: string) => Promise<Results | Errored>;
 }
 
 const getHandler = ({
@@ -81,17 +97,19 @@ const getHandler = ({
     ...(user && {'X-ClickHouse-User': user}),
     ...(password && {'X-ClickHouse-Key': password}),
   };
+
   return async ({
     query,
     path,
     db,
+    method = 'POST',
     onSuccess = fn,
     onError = fn,
   }: QueryHandler) => {
     const p = path ?? '/';
     const {body, statusCode} = await client.request({
       path: p,
-      method: 'POST',
+      method,
       body: query,
       headers: {
         ...(db && {'X-ClickHouse-Database': db}),
@@ -111,7 +129,7 @@ const getHandler = ({
     } else {
       log(`Error: ${txt}`);
       const e = getErrorObj({statusCode, data: txt});
-      onError({statusCode, e});
+      onError({statusCode, status: 'error', error: e});
     }
   };
 };
@@ -128,7 +146,6 @@ const clickhouse = (opts: ClickhouseOptions): ClickHouseClient => {
 
       const executableQuery = `${format(query, params)};`;
       return new Promise((res, rej) => {
-        //   @ts-ignore
         exec({
           query: executableQuery,
           onError: rej,
@@ -172,8 +189,14 @@ const clickhouse = (opts: ClickhouseOptions): ClickHouseClient => {
 
     ping: p => {
       const path = p ?? `/ping`;
-      //   @ts-ignore
-      return exec({path});
+      return new Promise((res, rej) => {
+        exec({
+          path,
+          method: 'GET',
+          onError: rej,
+          onSuccess: res,
+        });
+      });
     },
   };
 };
