@@ -74,14 +74,14 @@ export interface Results {
 export interface Errored {
   error: Error;
   status: 'error';
-  statusCode?: string;
+  statusCode?: number;
 }
 
 export interface ClickHouseClient {
-  query: (...Query) => Promise<Results | Errored>;
-  selectJson: (...Query) => Promise<Results | Errored>;
-  insertBatch: (BatchParams) => Promise<Results | Errored>;
-  ping: (path?: string) => Promise<Results | Errored>;
+  query: (...Query) => Promise<Results>;
+  selectJson: (...Query) => Promise<Results>;
+  insertBatch: (BatchParams) => Promise<Results>;
+  ping: (path?: string) => Promise<Results>;
 }
 
 const getHandler = ({
@@ -129,7 +129,8 @@ const getHandler = ({
     } else {
       log(`Error: ${txt}`);
       const e = getErrorObj({statusCode, data: txt});
-      onError({statusCode, status: 'error', error: e});
+      const err = {statusCode, status: 'error', error: e} as Errored;
+      onError(err);
     }
   };
 };
