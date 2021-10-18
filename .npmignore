@@ -4,6 +4,7 @@ clickhouse
 .env.sample
 yarn.lock
 tests
+example
 .husky
 .github
 .prettierignore

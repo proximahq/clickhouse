@@ -37,11 +37,11 @@ const getUndici = (host: string, port: number, protocol: string): Client => {
 type QueryStringParams = object | any[];
 export interface ClickhouseOptions {
   host: string;
-  port: number;
+  port?: number;
   db: string;
   protocol: string;
-  user: string;
-  password: string;
+  user?: string;
+  password?: string;
 }
 
 export interface Query {
@@ -64,24 +64,24 @@ export interface QueryHandler extends Query {
 interface GenericData {
   [key: string]: number | string | null;
 }
-export interface Results {
+export interface ClickhouseQueryResults {
   status: 'ok';
   type: 'json' | 'plain';
   statistics?: {elapsed: number; rows_read: number; bytes_read: number};
   data?: GenericData[] | string;
 }
 
-export interface Errored {
+export interface ClickhouseQueryError {
   error: Error;
   status: 'error';
   statusCode?: number;
 }
 
 export interface ClickHouseClient {
-  query: (...Query) => Promise<Results>;
-  selectJson: (...Query) => Promise<Results>;
-  insertBatch: (BatchParams) => Promise<Results>;
-  ping: (path?: string) => Promise<Results>;
+  query: (...Query) => Promise<ClickhouseQueryResults>;
+  selectJson: (...Query) => Promise<ClickhouseQueryResults>;
+  insertBatch: (BatchParams) => Promise<ClickhouseQueryResults>;
+  ping: (path?: string) => Promise<ClickhouseQueryResults>;
 }
 
 const getHandler = ({
@@ -129,7 +129,11 @@ const getHandler = ({
     } else {
       log(`Error: ${txt}`);
       const e = getErrorObj({statusCode, data: txt});
-      const err = {statusCode, status: 'error', error: e} as Errored;
+      const err = {
+        statusCode,
+        status: 'error',
+        error: e,
+      } as ClickhouseQueryError;
       onError(err);
     }
   };
@@ -147,7 +151,7 @@ const clickhouse = (opts: ClickhouseOptions): ClickHouseClient => {
 
       const executableQuery = `${format(query, params)};`;
       return new Promise((res, rej) => {
-        exec({
+        return exec({
           query: executableQuery,
           onError: rej,
           onSuccess: res,
@@ -159,7 +163,7 @@ const clickhouse = (opts: ClickhouseOptions): ClickHouseClient => {
       const executableQuery = `${format(q, params)} ${JSON_SUFFIX};`;
 
       return new Promise((res, rej) => {
-        exec({
+        return exec({
           query: executableQuery,
           onError: rej,
           onSuccess: res,
@@ -179,7 +183,7 @@ const clickhouse = (opts: ClickhouseOptions): ClickHouseClient => {
       })}`;
 
       return new Promise((res, rej) => {
-        exec({
+        return exec({
           query: JSON.stringify(items),
           path,
           onError: rej,
@@ -191,7 +195,7 @@ const clickhouse = (opts: ClickhouseOptions): ClickHouseClient => {
     ping: p => {
       const path = p ?? `/ping`;
       return new Promise((res, rej) => {
-        exec({
+        return exec({
           path,
           method: 'GET',
           onError: rej,
