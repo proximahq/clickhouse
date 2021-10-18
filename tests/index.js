@@ -51,7 +51,7 @@ test('query works as expected', async t => {
     const r = await client.query(query);
 
     t.deepEqual(r, {
-      data: '',
+      txt: '',
       status: 'ok',
       type: 'plain',
     });
@@ -79,7 +79,7 @@ test('selectJson is working as expected', async t => {
     const r = await client.query(query);
 
     t.deepEqual(r, {
-      data: '',
+      txt: '',
       status: 'ok',
       type: 'plain',
     });
@@ -135,7 +135,7 @@ test('query may insert and parse json values', async t => {
     const r = await client.query(query);
 
     t.deepEqual(r, {
-      data: '',
+      txt: '',
       status: 'ok',
       type: 'plain',
     });
@@ -192,7 +192,7 @@ test('query sanitizes the params', async t => {
     const r = await client.query(query);
 
     t.deepEqual(r, {
-      data: '',
+      txt: '',
       status: 'ok',
       type: 'plain',
     });
@@ -244,7 +244,7 @@ test('insert batch', async t => {
     const r = await client.query(query);
 
     t.deepEqual(r, {
-      data: '',
+      txt: '',
       status: 'ok',
       type: 'plain',
     });
@@ -292,5 +292,5 @@ test('pings', async t => {
   const res = await client.ping();
   t.is(res.status, 'ok');
   t.is(res.type, 'plain');
-  t.is(res.data, 'Ok.\n');
+  t.is(res.txt, 'Ok.\n');
 });

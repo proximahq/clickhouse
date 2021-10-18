@@ -61,14 +61,15 @@ export interface QueryHandler extends Query {
   onSuccess: (data: any) => void;
   onError: (data: any) => void;
 }
-interface GenericData {
+export interface ClickHouseData {
   [key: string]: number | string | null;
 }
 export interface ClickhouseQueryResults {
   status: 'ok';
   type: 'json' | 'plain';
   statistics?: {elapsed: number; rows_read: number; bytes_read: number};
-  data?: GenericData[] | string;
+  data?: ClickHouseData[];
+  txt?: string;
 }
 
 export interface ClickhouseQueryError {
@@ -124,7 +125,7 @@ const getHandler = ({
         const results = JSON.parse(txt);
         onSuccess({...results, status: 'ok', type: 'json'});
       } catch (ignore) {
-        onSuccess({status: 'ok', type: 'plain', data: txt});
+        onSuccess({status: 'ok', type: 'plain', txt: txt});
       }
     } else {
       log(`Error: ${txt}`);
