@@ -1,7 +1,7 @@
 import test from 'ava';
 import clickhouse from '../dist/clickhouse';
 
-const database = `test_${Date.now().toString(16)}`;
+const database = `test_db_${Date.now().toString(16)}`;
 
 const config = {
   host: 'localhost',

@@ -89,6 +89,7 @@ const getHandler = ({
   host,
   port,
   protocol,
+  db: database,
   user,
   password,
 }: ClickhouseOptions) => {
@@ -102,18 +103,18 @@ const getHandler = ({
   return async ({
     query,
     path,
-    db,
     method = 'POST',
     onSuccess = fn,
     onError = fn,
   }: QueryHandler) => {
     const p = path ?? '/';
+
     const {body, statusCode} = await client.request({
       path: p,
       method,
       body: query,
       headers: {
-        ...(db && {'X-ClickHouse-Database': db}),
+        ...(database && {'X-ClickHouse-Database': database}),
         ...headers,
       },
     });
