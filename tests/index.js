@@ -58,6 +58,53 @@ test('query works as expected', async t => {
   }
 });
 
+test('selectJson parses the values with right types', async t => {
+  const list = [
+    'DROP TABLE IF EXISTS test_json_parse',
+    `CREATE TABLE test_json_parse
+    (
+        \`a\` Int8,
+        \`b\` String,
+        \`c\` String,
+        \`d\` Int8,
+        \`timestamp\` DateTime DEFAULT now()
+    )
+    ENGINE = MergeTree()
+    ORDER BY a;
+    `,
+    `INSERT INTO test_json_parse (*) VALUES (1, 'hello', 'world', 1, '2021-01-01 00:00:00'),(2, 'foo', 'bar', 2, '2021-02-02 00:00:00');`,
+  ];
+  for (const query of list) {
+    const r = await client.query(query);
+
+    t.deepEqual(r, {
+      txt: '',
+      status: 'ok',
+      type: 'plain',
+    });
+  }
+  const res = await client.selectJson(
+    'select toInt32(count(*)) as counted from test_json WHERE a = ?',
+    [1],
+  );
+  t.deepEqual(res.data, [
+    {
+      counted: 1,
+    },
+  ]);
+
+  const resAsString = await client.selectJson(
+    'select count(*) as counted from test_json',
+  );
+
+  console.log(resAsString);
+  t.deepEqual(resAsString.data, [
+    {
+      counted: '2',
+    },
+  ]);
+});
+
 test('selectJson is working as expected', async t => {
   const list = [
     'DROP TABLE IF EXISTS test_json',
@@ -104,7 +151,7 @@ test('selectJson is working as expected', async t => {
   ]);
 
   const withParams = await client.selectJson(
-    `select a,b from test_json WHERE a=? and b=?;`,
+    `select a, b from test_json WHERE a=? and b=?;`,
     [1, 'hello'],
   );
 
