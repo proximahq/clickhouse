@@ -65,7 +65,7 @@ Extra options to pass along the query, useful when targeting different databases
 client.selectJson(`SELECT * FROM foo;`, [], {db: 'test'});
 ```
 
-### `client.insertBatch({table, items}, [extras]): Stream`
+### `client.insertBatch({table, items}, [extras]): Promise`
 Batch instert for tables.
 
 ##### `{table: string}`
@@ -88,3 +88,8 @@ Extra options to pass along the query, useful when targeting different databases
 ```javascript
 client.insertBatch({table: 'foo', items: [{a:1}]}, {db: 'test'});
 ```
+
+### _beta_
+### `client.queryStream({query, params, opaque, factory}): Promise<StreamData>`
+Sends an async query to the HTTP interface and returns a stream.
+Based on the `undici` library this API can be used to stream data from ClickHouse, back to the server.

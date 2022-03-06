@@ -1,9 +1,9 @@
-import clickhouse from '../src/index';
+import clickhouse from '../../src';
 
 const database = `test_${Date.now().toString(16)}`;
 
 const config = {
-  port: 8012,
+  port: 8123,
   host: 'localhost',
   protocol: 'http',
   user: 'default',

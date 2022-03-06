@@ -1,89 +1,85 @@
-import {Client} from 'undici';
+import {Writable} from 'stream';
 import {format} from 'sqlstring';
 import dbg from 'debug';
 import {getErrorObj} from './error';
+import {
+  QueryHandler,
+  StreamQueryHandler,
+  ClickhouseOptions,
+  ClickhouseQueryError,
+  ClickHousePool,
+} from './types';
+import {
+  JSON_EACH_SUFFIX,
+  JSON_SUFFIX,
+  fn,
+  defaultOpts,
+  cleanup,
+  getUndici,
+  bumpHeaders,
+  grabInstance,
+} from './utils';
 
-const log = dbg('clickhouse');
+const log = dbg('proxima:clickhouse-driver');
 
-// Constants
-const TRAILING_SEMI = /;+$/;
-const JSON_SUFFIX = 'FORMAT JSON;';
-const JSON_EACH_SUFFIX = 'FORMAT JSONEachRow';
+const getStreamHandler = ({
+  host,
+  port,
+  protocol,
+  db: database,
+  user,
+  password,
+  connections,
+}: ClickhouseOptions) => {
+  const pool = getUndici({host, port, protocol, connections});
+  const headers = bumpHeaders({user, password});
+  return ({
+    query,
+    path,
+    opaque,
+    method = 'POST',
+    factory,
+  }: StreamQueryHandler) => {
+    log('streaming for query %s', query);
+    log('streaming headers %o', headers);
+    log('streaming opaque found', !!opaque);
+    log('streaming factory found', !!factory);
+    log('streaming method', method);
 
-// Utils
-// @ts-ignore
-const fn = (...args: any[]): void => {};
+    const partials: string[] = [];
+    const fctr = ({opaque, statusCode}) => {
+      const w = new Writable({
+        defaultEncoding: 'utf-8',
+        write(partial: string, _, callback) {
+          (opaque as string[]).push(partial);
+          callback();
+        },
+      });
+      w.on('error', () => {
+        throw new Error('stream error');
+      });
+      if (statusCode !== 200) {
+        w.emit('error', 'err');
+      }
+      return w;
+    };
 
-const defaultOpts = {
-  host: 'localhost',
-  port: 8123,
-  db: 'default',
-  protocol: 'http',
-  user: '',
-  password: '',
+    const p = path ?? '/';
+    return pool.stream(
+      {
+        path: p,
+        method,
+        headers: {
+          ...(database && {'X-ClickHouse-Database': database}),
+          ...headers,
+        },
+        body: query,
+        opaque: opaque ? opaque : partials,
+      },
+      factory ? factory : fctr,
+    );
+  };
 };
-
-const cleanup = (str: string) => str.replace(TRAILING_SEMI, '');
-
-let undiciClient: Client;
-
-const getUndici = (host: string, port: number, protocol: string): Client => {
-  if (undiciClient) return undiciClient;
-  const u = `${protocol}://${host}:${port}`;
-  undiciClient = new Client(u);
-  return undiciClient;
-};
-
-type QueryStringParams = object | any[];
-export interface ClickhouseOptions {
-  host: string;
-  port?: number;
-  db: string;
-  protocol: string;
-  user?: string;
-  password?: string;
-}
-
-export interface Query {
-  query?: string;
-  params?: QueryStringParams;
-}
-
-export interface BatchParams extends Query {
-  table: string;
-  items: any[];
-}
-
-export interface QueryHandler extends Query {
-  path?: string;
-  db?: string;
-  method?: 'GET' | 'POST';
-  onSuccess: (data: any) => void;
-  onError: (data: any) => void;
-}
-export interface ClickHouseData {
-  [key: string]: number | string | null;
-}
-export interface ClickhouseQueryResults {
-  status: 'ok';
-  type: 'json' | 'plain';
-  statistics?: {elapsed: number; rows_read: number; bytes_read: number};
-  data?: ClickHouseData[];
-  txt?: string;
-}
-
-export interface ClickhouseQueryError {
-  error: Error;
-  status: 'error';
-  statusCode?: number;
-}
-
-export interface ClickHouseClient {
-  query: (...Query) => Promise<Promise<ClickhouseQueryResults>>;
-  selectJson: (...Query) => Promise<ClickhouseQueryResults>;
-  insertBatch: (BatchParams) => Promise<ClickhouseQueryResults>;
-  ping: (path?: string) => Promise<Promise<ClickhouseQueryResults>>;
-}
 
 const getHandler = ({
   host,
@@ -92,13 +88,10 @@ const getHandler = ({
   db: database,
   user,
   password,
+  connections,
 }: ClickhouseOptions) => {
-  const client = getUndici(host, port, protocol);
-  const headers = {
-    'Content-Type': 'application/json',
-    ...(user && {'X-ClickHouse-User': user}),
-    ...(password && {'X-ClickHouse-Key': password}),
-  };
+  const Pool = getUndici({host, port, protocol, connections});
+  const headers = bumpHeaders({user, password});
 
   return async ({
     query,
@@ -109,7 +102,7 @@ const getHandler = ({
   }: QueryHandler) => {
     const p = path ?? '/';
 
-    const {body, statusCode} = await client.request({
+    const {body, statusCode} = await Pool.request({
       path: p,
       method,
       body: query,
@@ -124,8 +117,10 @@ const getHandler = ({
     if (statusCode === 200) {
       try {
         const results = JSON.parse(txt);
+        log('success');
         onSuccess({...results, status: 'ok', type: 'json'});
       } catch (ignore) {
+        log('success without format');
         onSuccess({status: 'ok', type: 'plain', txt: txt});
       }
     } else {
@@ -141,10 +136,12 @@ const getHandler = ({
   };
 };
 
-const clickhouse = (opts: ClickhouseOptions): ClickHouseClient => {
+const clickhouse = (opts: ClickhouseOptions): ClickHousePool => {
   log('init');
   const options = {...defaultOpts, ...(opts || {})};
   const exec = getHandler(options);
+  const execStream = getStreamHandler(options);
+
   return {
     query: (query, params = []) => {
       if (!query) {
@@ -172,6 +169,16 @@ const clickhouse = (opts: ClickhouseOptions): ClickHouseClient => {
         });
       });
     },
+    queryStream: ({query, params, opaque, factory}) => {
+      const q = cleanup(query ?? '');
+      const executableQuery = `${format(q, params)};`;
+      return execStream({
+        query: executableQuery,
+        opaque,
+        factory,
+      });
+    },
+
     insertBatch: (q = {}) => {
       const {table, items} = q;
       if (!table) {
@@ -189,12 +196,16 @@ const clickhouse = (opts: ClickhouseOptions): ClickHouseClient => {
           query: JSON.stringify(items),
           path,
           onError: rej,
-          onSuccess: res,
+          onSuccess: data => {
+            log('insertBatch success');
+            res(data);
+          },
         });
       });
     },
 
     ping: p => {
+      log('ping');
       const path = p ?? `/ping`;
       return new Promise((res, rej) => {
         exec({
@@ -205,7 +216,13 @@ const clickhouse = (opts: ClickhouseOptions): ClickHouseClient => {
         });
       });
     },
+    close: () => {
+      log('closing');
+      const instance = grabInstance();
+      instance && !instance.closed && instance.close();
+    },
   };
 };
 
+export * from './types';
 export default clickhouse;

@@ -1,0 +1,12 @@
+{
+  "name": "stream-clickhouse-fastify",
+  "version": "0.0.0",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "fastify": "^3.27.1",
+    "fastify-plugin": "^3.0.1",
+    "pino-pretty": "^7.5.1"
+  }
+}
