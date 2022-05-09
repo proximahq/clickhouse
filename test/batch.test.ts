@@ -1,5 +1,5 @@
 import {expect, test, beforeAll, afterAll} from 'vitest';
-import clickhouse from '../src';
+import {clickhouse} from '../src';
 import {dbName} from './utils';
 
 const database = dbName();
@@ -16,23 +16,33 @@ const config = {
   host: 'localhost',
   protocol: 'http',
   user: 'default',
+  port: 8123,
   password: 'password',
-  connections: 2,
+  connections: 10,
 };
 
 beforeAll(async t => {
-  const ch = clickhouse(config);
-  await ch.query(`DROP DATABASE IF EXISTS ${database}`);
-  await ch.query(`CREATE DATABASE ${database}`);
+  try {
+    const ch = clickhouse(config);
+    await ch.open();
+    await ch.query(`DROP DATABASE IF EXISTS ${database}`);
+    await ch.query(`CREATE DATABASE ${database}`);
+    await ch.close();
+  } catch (error) {
+    console.log(error);
+  }
 });
 
 afterAll(async t => {
   const ch = clickhouse(config);
+  await ch.open();
   await ch.query(`DROP DATABASE IF EXISTS ${database}`);
+  await ch.close();
 });
 
 test('insert batch throws', async () => {
   const client = clickhouse({...config, db: database});
+  await client.open();
   await expect(() =>
     client.insertBatch('foo'),
   ).toThrowErrorMatchingInlineSnapshot(
@@ -44,10 +54,12 @@ test('insert batch throws', async () => {
   ).toThrowErrorMatchingInlineSnapshot(
     '"`items` are required for batch insert"',
   );
+  await client.close();
 });
 
-test.skip('insert batch works', async () => {
+test('insert batch works', async () => {
   const client = clickhouse({...config, db: database});
+  await client.open();
   const list = [
     'DROP TABLE IF EXISTS batchit',
     `CREATE TABLE batchit
@@ -83,10 +95,12 @@ test.skip('insert batch works', async () => {
   expect(res.rows).toBe(3);
   expect(res.type).toBe('json');
   expect(res.data).eqls(items);
+  await client.close();
 });
 
 test('insert batch handles errors', async () => {
   const client = clickhouse({...config, db: database});
+  await client.open();
   const items = [
     {a: 1, b: 'foo', c: 3},
     {a: 1, b: 'baz', c: 3},
@@ -100,6 +114,8 @@ test('insert batch handles errors', async () => {
     });
     expect.fail();
   } catch (e) {
-    expect(e.statusCode).toBe(404);
+    expect(e.error.statusCode).toBe(404);
   }
+
+  await client.close();
 });

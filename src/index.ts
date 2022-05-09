@@ -1,185 +1,80 @@
-import {Writable} from 'stream';
+import {Connection} from './connection';
+import {ClickhouseOptions, QueryParams, BatchParams} from './types';
+import {defaultOpts, JSON_SUFFIX, JSON_EACH_SUFFIX} from './constants';
+import {cleanupObj, cleanup, createPathGen, genIds} from './utils';
 import {format} from 'sqlstring';
 import dbg from 'debug';
-import {getErrorObj} from './error';
-import {
-  QueryHandler,
-  StreamQueryHandler,
-  ClickhouseOptions,
-  ClickhouseQueryError,
-  ClickHousePool,
-} from './types';
-import {
-  JSON_EACH_SUFFIX,
-  JSON_SUFFIX,
-  fn,
-  defaultOpts,
-  cleanup,
-  getUndici,
-  bumpHeaders,
-  grabInstance,
-} from './utils';
 
-const log = dbg('proxima:clickhouse-driver');
+const log = dbg('proxima:clickhouse-driver:main');
+const factoryId = genIds();
+const createPath = createPathGen();
 
-const getStreamHandler = ({
-  host,
-  port,
-  protocol,
-  db: database,
-  user,
-  password,
-  connections,
-}: ClickhouseOptions) => {
-  const pool = getUndici({host, port, protocol, connections});
-  const headers = bumpHeaders({user, password});
-  return ({
-    query,
-    path,
-    opaque,
-    method = 'POST',
-    factory,
-  }: StreamQueryHandler) => {
-    log('streaming for query %s', query);
-    log('streaming headers %o', headers);
-    log('streaming opaque found', !!opaque);
-    log('streaming factory found', !!factory);
-    log('streaming method', method);
+export const clickhouse = (opts: ClickhouseOptions = defaultOpts) => {
+  const {
+    protocol,
+    host,
+    port,
 
-    const partials: string[] = [];
-    const fctr = ({opaque, statusCode}) => {
-      const w = new Writable({
-        defaultEncoding: 'utf-8',
-        write(partial: string, _, callback) {
-          (opaque as string[]).push(partial);
-          callback();
-        },
+    db,
+    user,
+    password,
+    connections,
+    keepAliveMaxTimeout,
+    headersTimeout,
+    bodyTimeout,
+  } = opts;
+
+  const client = new Connection({db, user, password});
+
+  const ch = {
+    open: () => {
+      log('opening connection');
+
+      const p = cleanupObj({
+        connections,
+        keepAliveMaxTimeout,
+        headersTimeout,
+        bodyTimeout,
       });
-      w.on('error', () => {
-        throw new Error('stream error');
-      });
-      if (statusCode !== 200) {
-        w.emit('error', 'err');
-      }
-      return w;
-    };
-
-    const p = path ?? '/';
-    return pool.stream(
-      {
-        path: p,
-        method,
-        headers: {
-          ...(database && {'X-ClickHouse-Database': database}),
-          ...headers,
-        },
-        body: query,
-        opaque: opaque ? opaque : partials,
-      },
-      factory ? factory : fctr,
-    );
-  };
-};
-
-const getHandler = ({
-  host,
-  port,
-  protocol,
-  db: database,
-  user,
-  password,
-  connections,
-}: ClickhouseOptions) => {
-  const Pool = getUndici({host, port, protocol, connections});
-  const headers = bumpHeaders({user, password});
-
-  return async ({
-    query,
-    path,
-    method = 'POST',
-    onSuccess = fn,
-    onError = fn,
-  }: QueryHandler) => {
-    const p = path ?? '/';
-
-    const {body, statusCode} = await Pool.request({
-      path: p,
-      method,
-      body: query,
-      headers: {
-        ...(database && {'X-ClickHouse-Database': database}),
-        ...headers,
-      },
-    });
-
-    const txt = await body.text();
-
-    if (statusCode === 200) {
-      try {
-        const results = JSON.parse(txt);
-        log('success');
-        onSuccess({...results, status: 'ok', type: 'json'});
-      } catch (ignore) {
-        log('success without format');
-        onSuccess({status: 'ok', type: 'plain', txt: txt});
-      }
-    } else {
-      log(`Error: ${txt}`);
-      const e = getErrorObj({statusCode, data: txt});
-      const err = {
-        statusCode,
-        status: 'error',
-        error: e,
-      } as ClickhouseQueryError;
-      onError(err);
-    }
-  };
-};
-
-const clickhouse = (opts: ClickhouseOptions): ClickHousePool => {
-  log('init');
-  const options = {...defaultOpts, ...(opts || {})};
-  const exec = getHandler(options);
-  const execStream = getStreamHandler(options);
-
-  return {
-    query: (query, params = []) => {
-      if (!query) {
+      const u = `${protocol}://${host}:${port}`;
+      return client.open(u, p);
+    },
+    close: () => {
+      log('closing connection');
+      client && client.isClosed() && client.close();
+    },
+    //
+    query: (queryString: string, params = [], queryId = factoryId()) => {
+      if (!queryString) {
         throw new Error('query is required');
       }
-
-      const executableQuery = `${format(query, params)};`;
-      return new Promise((res, rej) => {
-        return exec({
-          query: executableQuery,
-          onError: rej,
-          onSuccess: res,
-        });
+      const executableQuery = format(queryString, params);
+      const sessionId = client.getSeesionId();
+      const path = createPath({
+        session_id: sessionId,
+        query_id: queryId,
+      });
+      return client.post(path, executableQuery).finally(() => {
+        client.returnSessionId(sessionId);
       });
     },
-    selectJson: (query, params = []) => {
-      const q = cleanup(query ?? '');
+    selectJson: (queryString: string, params = [], queryId = factoryId()) => {
+      if (!queryString) {
+        throw new Error('query is required');
+      }
+      const q = cleanup(queryString ?? '');
       const executableQuery = `${format(q, params)} ${JSON_SUFFIX};`;
+      const sessionId = client.getSeesionId();
 
-      return new Promise((res, rej) => {
-        exec({
-          query: executableQuery,
-          onError: rej,
-          onSuccess: res,
-        });
+      const path = createPath({
+        session_id: sessionId,
+        query_id: queryId,
+      });
+      return client.post(path, executableQuery).finally(() => {
+        client.returnSessionId(sessionId);
       });
     },
-    queryStream: ({query, params, opaque, factory}) => {
-      const q = cleanup(query ?? '');
-      const executableQuery = `${format(q, params)};`;
-      return execStream({
-        query: executableQuery,
-        opaque,
-        factory,
-      });
-    },
-
-    insertBatch: (q = {}) => {
+    insertBatch: (q, queryId = factoryId()) => {
       const {table, items} = q;
       if (!table) {
         throw new Error('`table` is required for batch insert');
@@ -187,42 +82,23 @@ const clickhouse = (opts: ClickhouseOptions): ClickHousePool => {
       if (!items) {
         throw new Error('`items` are required for batch insert');
       }
-      const path = `/?${new URLSearchParams({
+
+      const sessionId = client.getSeesionId();
+      const path = createPath({
         query: `INSERT INTO ${table} ${JSON_EACH_SUFFIX}`,
-      })}`;
+        session_id: sessionId,
+        query_id: queryId,
+      });
 
-      return new Promise((res, rej) => {
-        exec({
-          query: JSON.stringify(items),
-          path,
-          onError: rej,
-          onSuccess: data => {
-            log('insertBatch success');
-            res(data);
-          },
-        });
+      const executableQuery = JSON.stringify(items);
+      return client.post(path, executableQuery).finally(() => {
+        client.returnSessionId(sessionId);
       });
     },
-
-    ping: p => {
-      log('ping');
-      const path = p ?? `/ping`;
-      return new Promise((res, rej) => {
-        exec({
-          path,
-          method: 'GET',
-          onError: rej,
-          onSuccess: res,
-        });
-      });
-    },
-    close: () => {
-      log('closing');
-      const instance = grabInstance();
-      instance && !instance.closed && instance.close();
+    //
+    ping: () => {
+      return client.get('/ping');
     },
   };
+  return ch;
 };
-
-export * from './types';
-export default clickhouse;

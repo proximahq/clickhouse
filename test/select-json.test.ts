@@ -1,5 +1,5 @@
 import {assert, expect, test, beforeAll, afterAll} from 'vitest';
-import clickhouse from '../src';
+import {clickhouse} from '../src';
 import {dbName} from './utils';
 
 const database = dbName();
@@ -15,6 +15,7 @@ async function streamToJSON(readable) {
 const config = {
   host: 'localhost',
   protocol: 'http',
+  port: 8123,
   user: 'default',
   password: 'password',
   connections: 2,
@@ -22,17 +23,22 @@ const config = {
 
 beforeAll(async t => {
   const ch = clickhouse(config);
+  await ch.open();
   await ch.query(`DROP DATABASE IF EXISTS ${database}`);
   await ch.query(`CREATE DATABASE ${database}`);
+  await ch.close();
 });
 
 afterAll(async t => {
   const ch = clickhouse(config);
+  await ch.open();
   await ch.query(`DROP DATABASE IF EXISTS ${database}`);
+  await ch.close();
 });
 
 test.skip('selectJson parses the values with right types', async () => {
   const client = clickhouse({...config, db: database});
+  client.open();
   const list = [
     'DROP TABLE IF EXISTS test_json_select',
     `CREATE TABLE test_json_select
@@ -82,10 +88,12 @@ test.skip('selectJson parses the values with right types', async () => {
       counted: '2',
     },
   ]);
+  await client.close();
 });
 
 test.skip('selectJson returns all the metadata', async () => {
   const client = clickhouse({...config, db: database});
+  await client.open();
   const res = await client.selectJson(
     `SELECT 'hello' as a, 'world' as b, 1 as c, 2 as d`,
   );
@@ -122,10 +130,12 @@ test.skip('selectJson returns all the metadata', async () => {
   expect(res.status).toBe('ok');
   expect(res.rows).toBe(1);
   expect(res.statistics).toBeDefined();
+  await client.close();
 });
 
 test('selectJson is working as expected', async () => {
   const client = clickhouse({...config, db: database});
+  await client.open();
   const list = [
     'DROP TABLE IF EXISTS test_json_expected',
     `CREATE TABLE test_json_expected
@@ -176,4 +186,5 @@ test('selectJson is working as expected', async () => {
       b: 'hello',
     },
   ]);
+  await client.close();
 });

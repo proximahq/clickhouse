@@ -1,11 +1,27 @@
+import type {Dispatcher} from 'undici';
+import dbg from 'debug';
+
 const ERRORED = new RegExp('Code: ([0-9]{2}), .*Exception:');
 
+const log = dbg('proxima:clickhouse-driver:error');
+
 interface ErrorProps {
-  statusCode: number;
-  data: string;
+  statusCode: Dispatcher.ResponseData['statusCode'];
+  txt: string;
 }
-export function getErrorObj(opts: ErrorProps): Error {
-  const {statusCode, data} = opts;
+
+export async function getErrorObj(opts: ErrorProps): Promise<Error> {
+  const {statusCode, txt} = opts;
+  log('getErrorObj');
+  let data = '';
+
+  try {
+    log('decode stream');
+    data = txt;
+  } catch (error) {
+    data = error?.bufferedData ?? '';
+  }
+
   const err = new Error(`Clickhouse error`);
   //   @ts-ignore
   err.body = data;

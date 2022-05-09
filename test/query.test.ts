@@ -1,5 +1,5 @@
 import {expect, test, beforeAll, afterAll} from 'vitest';
-import clickhouse from '../src';
+import {clickhouse} from '../src';
 import {dbName} from './utils';
 
 const database = dbName();
@@ -7,24 +7,38 @@ const database = dbName();
 const config = {
   host: 'localhost',
   protocol: 'http',
+  port: 8123,
   user: 'default',
   password: 'password',
   connections: 2,
 };
 
 beforeAll(async t => {
-  const ch = clickhouse(config);
-  await ch.query(`DROP DATABASE IF EXISTS ${database}`);
-  await ch.query(`CREATE DATABASE ${database}`);
+  try {
+    const ch = clickhouse(config);
+    await ch.open();
+    await ch.query(`DROP DATABASE IF EXISTS ${database}`);
+    await ch.query(`CREATE DATABASE ${database}`);
+    await ch.close();
+  } catch (error) {
+    console.log(error);
+  }
 });
 
 afterAll(async t => {
-  const ch = clickhouse(config);
-  await ch.query(`DROP DATABASE IF EXISTS ${database}`);
+  try {
+    const ch = clickhouse(config);
+    await ch.open();
+    await ch.query(`DROP DATABASE IF EXISTS ${database}`);
+    await ch.close();
+  } catch (error) {
+    console.log(error);
+  }
 });
 
 test('query works as expected', async () => {
   const client = clickhouse({...config, db: database});
+  await client.open();
   const list = [
     'DROP TABLE IF EXISTS foo',
     `
@@ -56,10 +70,12 @@ test('query works as expected', async () => {
       type: 'plain',
     });
   }
+  await client.close();
 });
 
 test('query may insert and parse json values as well', async () => {
   const client = clickhouse({...config, db: database});
+  await client.open();
   const list = [
     'DROP TABLE IF EXISTS bar',
     `CREATE TABLE bar
@@ -112,11 +128,13 @@ test('query may insert and parse json values as well', async () => {
       c: 2,
     },
   ]);
+  await client.close();
 });
 
 test('query sanitizes the params', async () => {
   const client = clickhouse({...config, db: database});
 
+  await client.open();
   const list = [
     'DROP TABLE IF EXISTS qux',
     `CREATE TABLE qux
@@ -153,4 +171,5 @@ test('query sanitizes the params', async () => {
       c: 1,
     },
   ]);
+  await client.close();
 });

@@ -1,42 +1,53 @@
-import {Pool} from 'undici';
-import {ClickhouseOptions} from './types';
-export const TRAILING_SEMI = /;+$/;
-export const JSON_SUFFIX = 'FORMAT JSON;';
-export const JSON_EACH_SUFFIX = 'FORMAT JSONEachRow';
+import {TRAILING_SEMI} from './constants';
+import dbg from 'debug';
+import {nanoid} from 'nanoid';
+const log = dbg('proxima:clickhouse-driver:utils');
 
-export const fn = (...args: any[]): void => {};
-export const defaultOpts = {
-  host: 'localhost',
-  port: 8123,
-  db: 'default',
-  protocol: 'http',
-  user: '',
-  password: '',
-  connections: null,
+export const isEmptyObj = (obj: {}) =>
+  Object.keys(obj).length === 0 && obj.constructor === Object;
+
+export const isEmptyArr = (arr: any) => Array.isArray(arr) && arr.length === 0;
+
+export const isNil = (v: any) =>
+  v === undefined || v === null || isEmptyObj(v) || isEmptyArr(v) || v === '';
+
+export const cleanupObj = (obj: any = {}) => {
+  log('cleanupObj');
+  const s = Object.keys(obj).reduce((acc, k) => {
+    if (isNil(obj[k])) {
+      return acc;
+    }
+    return {...acc, [k]: obj[k]};
+  }, {});
+  log('obj: %o', obj);
+  log('cleanupObj: %o', s);
+  return s;
 };
 
 export const cleanup = (str: string) => str.replace(TRAILING_SEMI, '');
 
-let undiciPool: Pool;
-
-export const getUndici = ({host, port, protocol, connections}): Pool => {
-  if (undiciPool) return undiciPool;
-  const u = `${protocol}://${host}:${port}`;
-  undiciPool = new Pool(u, {
-    connections: connections ?? 1,
-  });
-  return undiciPool;
+export const createPathGen = () => {
+  const s = {
+    session_timeout: 60,
+    output_format_json_quote_64bit_integers: 0,
+    enable_http_compression: 1,
+  };
+  return function create(obj) {
+    return createPath({...s, ...obj});
+  };
+};
+export const createPath = (obj: any) => {
+  const cleaned = cleanupObj(obj);
+  const str = new URLSearchParams(cleaned).toString();
+  return !str ? '/' : `/?${str}`;
 };
 
-export const grabInstance = () => {
-  return undiciPool;
+export const genIds = () => {
+  const maxInt = 2147483647;
+  let nextReqId = 0;
+  const str = nanoid(16);
+  return function next() {
+    nextReqId = (nextReqId + 1) & maxInt;
+    return `${str}-${nextReqId.toString(36)}`;
+  };
 };
-
-export const bumpHeaders = ({
-  user,
-  password,
-}: Pick<ClickhouseOptions, 'user' | 'password'>) => ({
-  'Content-Type': 'application/json',
-  ...(user && {'X-ClickHouse-User': user}),
-  ...(password && {'X-ClickHouse-Key': password}),
-});

@@ -7,11 +7,11 @@
     "url": "https://github.com/proximahq/clickhouse.git"
   },
   "source": "src/index.ts",
-  "main": "dist/clickhouse.js",
-  "module": "dist/clickhouse.m.js",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
   "exports": {
-    "require": "./dist/clickhouse.js",
-    "default": "./dist/clickhouse.m.js"
+    "require": "./dist/index.js",
+    "default": "./dist/index.mjs"
   },
   "types": "dist/index.d.ts",
   "files": [
@@ -19,8 +19,8 @@
     "dist/**/*.ts"
   ],
   "scripts": {
-    "build": "microbundle --define PKG_VERSION=$npm_package_version",
-    "watch": "microbundle watch --define PKG_VERSION=$npm_package_version",
+    "build": "tsup --env.NODE_ENV production ./src/index.ts --format esm,cjs --outDir dist",
+    "watch": "tsup --env.NODE_ENV production ./src/index.ts --format esm,cjs --watch --outDir dist",
     "test": "vitest run",
     "test:debug": "DEBUG=proxima:* vitest run",
     "prepare": "husky install",
@@ -28,23 +28,25 @@
     "semantic-release": "semantic-release"
   },
   "dependencies": {
-    "@types/debug": "^4.1.7",
-    "@types/node": "16.10.3",
-    "@types/sqlstring": "^2.3.0",
-    "debug": "4.3.1",
-    "sqlstring": "2.3.2",
-    "undici": "4.5.1"
+    "debug": "4.3.4",
+    "lodash": "4.17.21",
+    "sqlstring": "2.3.3",
+    "nanoid": "3.3.4",
+    "undici": "5.1.1"
   },
   "devDependencies": {
     "@commitlint/cli": "13.1.0",
     "@commitlint/config-conventional": "13.1.0",
+    "@types/debug": "^4.1.7",
+    "@types/node": "16.10.3",
+    "@types/sqlstring": "^2.3.0",
     "eslint": "7.17.0",
     "husky": "^7.0.2",
     "lint-staged": "10.3.0",
-    "microbundle": "^0.14.2",
     "prettier": "2.1.1",
     "semantic-release": "^18.0.0",
-    "vitest": "^0.5.9"
+    "tsup": "5.12.6",
+    "vitest": "^0.10.2"
   },
   "license": "MIT",
   "engines": {
