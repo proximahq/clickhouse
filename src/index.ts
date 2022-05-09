@@ -1,5 +1,5 @@
 import {Connection} from './connection';
-import {ClickhouseOptions, BatchTable} from './types';
+import {ClickhouseOptions, BatchTable, Client} from './types';
 import {defaultOpts, JSON_SUFFIX, JSON_EACH_SUFFIX} from './constants';
 import {cleanupObj, cleanup, createPathGen, genIds} from './utils';
 import {format} from 'sqlstring';
@@ -9,7 +9,7 @@ const log = dbg('proxima:clickhouse-driver:main');
 const factoryId = genIds();
 const createPath = createPathGen();
 
-export const clickhouse = (opts: ClickhouseOptions = defaultOpts) => {
+export const clickhouse = (opts: ClickhouseOptions = defaultOpts): Client => {
   const {
     protocol,
     host,

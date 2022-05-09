@@ -43,3 +43,20 @@ export interface BatchParams {
   q: BatchTable;
   queryId?: string;
 }
+
+export interface Client {
+  open: () => void;
+  close: () => void;
+  query: (
+    queryString: string,
+    params?: never[],
+    queryId?: string,
+  ) => Promise<any>;
+  selectJson: (
+    queryString: string,
+    params?: never[],
+    queryId?: string,
+  ) => Promise<any>;
+  insertBatch: (q: BatchTable, queryId?: string) => Promise<any>;
+  ping: () => Promise<any>;
+}
