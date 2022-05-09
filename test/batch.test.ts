@@ -44,12 +44,14 @@ test('insert batch throws', async () => {
   const client = clickhouse({...config, db: database});
   await client.open();
   await expect(() =>
+    // @ts-ignore
     client.insertBatch('foo'),
   ).toThrowErrorMatchingInlineSnapshot(
     '"`table` is required for batch insert"',
   );
 
   await expect(() =>
+    // @ts-ignore
     client.insertBatch({table: 'foo'}),
   ).toThrowErrorMatchingInlineSnapshot(
     '"`items` are required for batch insert"',
