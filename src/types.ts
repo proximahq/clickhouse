@@ -1,4 +1,5 @@
-import type {Pool, Dispatcher} from 'undici';
+import type {Pool} from 'undici';
+
 type QueryStringParams = object | any[];
 export interface ClickhouseOptions {
   // Options Clickhouse

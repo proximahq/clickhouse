@@ -19,7 +19,7 @@
     "dist/**/*.ts"
   ],
   "scripts": {
-    "build": "tsup --env.NODE_ENV production ./src/index.ts --format esm,cjs --outDir dist",
+    "build": "tsup --env.NODE_ENV production ./src/index.ts --dts --format esm,cjs --outDir dist",
     "watch": "tsup --env.NODE_ENV production ./src/index.ts --format esm,cjs --watch --outDir dist",
     "test": "vitest run",
     "test:debug": "DEBUG=proxima:* vitest run",
@@ -30,23 +30,24 @@
   "dependencies": {
     "debug": "4.3.4",
     "lodash": "4.17.21",
-    "sqlstring": "2.3.3",
     "nanoid": "3.3.4",
+    "sqlstring": "2.3.3",
     "undici": "5.1.1"
   },
   "devDependencies": {
     "@commitlint/cli": "13.1.0",
     "@commitlint/config-conventional": "13.1.0",
+    "@tsconfig/node17": "^1.0.0",
     "@types/debug": "^4.1.7",
     "@types/node": "16.10.3",
     "@types/sqlstring": "^2.3.0",
     "eslint": "7.17.0",
     "husky": "^7.0.2",
     "lint-staged": "10.3.0",
-    "prettier": "2.1.1",
+    "prettier": "2.6.2",
     "semantic-release": "^18.0.0",
-    "tsup": "5.12.6",
-    "vitest": "^0.10.2"
+    "tsup": "5.12.7",
+    "vitest": "0.12.2"
   },
   "license": "MIT",
   "engines": {

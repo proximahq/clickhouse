@@ -1,5 +1,5 @@
 import {Connection} from './connection';
-import {ClickhouseOptions, QueryParams, BatchParams} from './types';
+import {ClickhouseOptions, BatchTable} from './types';
 import {defaultOpts, JSON_SUFFIX, JSON_EACH_SUFFIX} from './constants';
 import {cleanupObj, cleanup, createPathGen, genIds} from './utils';
 import {format} from 'sqlstring';
@@ -55,7 +55,7 @@ export const clickhouse = (opts: ClickhouseOptions = defaultOpts) => {
         query_id: queryId,
       });
       return client.post(path, executableQuery).finally(() => {
-        client.returnSessionId(sessionId);
+        client.returnSessionId(sessionId as string);
       });
     },
     selectJson: (queryString: string, params = [], queryId = factoryId()) => {
@@ -71,10 +71,10 @@ export const clickhouse = (opts: ClickhouseOptions = defaultOpts) => {
         query_id: queryId,
       });
       return client.post(path, executableQuery).finally(() => {
-        client.returnSessionId(sessionId);
+        client.returnSessionId(sessionId as string);
       });
     },
-    insertBatch: (q, queryId = factoryId()) => {
+    insertBatch: (q: BatchTable, queryId = factoryId()) => {
       const {table, items} = q;
       if (!table) {
         throw new Error('`table` is required for batch insert');
@@ -92,10 +92,9 @@ export const clickhouse = (opts: ClickhouseOptions = defaultOpts) => {
 
       const executableQuery = JSON.stringify(items);
       return client.post(path, executableQuery).finally(() => {
-        client.returnSessionId(sessionId);
+        client.returnSessionId(sessionId as string);
       });
     },
-    //
     ping: () => {
       return client.get('/ping');
     },
