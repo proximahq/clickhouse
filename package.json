@@ -37,7 +37,6 @@
   "devDependencies": {
     "@commitlint/cli": "13.1.0",
     "@commitlint/config-conventional": "13.1.0",
-    "@tsconfig/node17": "^1.0.0",
     "@types/debug": "^4.1.7",
     "@types/node": "16.10.3",
     "@types/sqlstring": "^2.3.0",
@@ -45,9 +44,12 @@
     "husky": "^7.0.2",
     "lint-staged": "10.3.0",
     "prettier": "2.6.2",
-    "semantic-release": "^18.0.0",
+    "semantic-release": "19.0.2",
     "tsup": "5.12.7",
     "vitest": "0.12.2"
+  },
+  "peerDependencies": {
+    "node-fetch": ">= 2.6.3"
   },
   "license": "MIT",
   "engines": {
