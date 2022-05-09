@@ -9,6 +9,7 @@ const log = dbg('proxima:clickhouse-driver:main');
 const factoryId = genIds();
 const createPath = createPathGen();
 
+export type {Client, ClickhouseOptions};
 export const clickhouse = (opts: ClickhouseOptions = defaultOpts): Client => {
   const {
     protocol,
