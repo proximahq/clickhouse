@@ -19,5 +19,5 @@ test('pings', async () => {
 
   expect(res.status).toBe('ok');
   expect(res.type).toBe('plain');
-  expect(res.txt).toBe('Ok.\n');
+  expect(res.txt).toBe('Ok.');
 });

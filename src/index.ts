@@ -45,7 +45,7 @@ export const clickhouse = (opts: ClickhouseOptions = defaultOpts): Client => {
       client && client.isClosed() && client.close();
     },
     //
-    query: (queryString: string, params = [], queryId = factoryId()) => {
+    query: (queryString: string, params: any[] = [], queryId = factoryId()) => {
       if (!queryString) {
         throw new Error('query is required');
       }
@@ -59,7 +59,11 @@ export const clickhouse = (opts: ClickhouseOptions = defaultOpts): Client => {
         client.returnSessionId(sessionId as string);
       });
     },
-    selectJson: (queryString: string, params = [], queryId = factoryId()) => {
+    selectJson: (
+      queryString: string,
+      params: any[] = [],
+      queryId = factoryId(),
+    ) => {
       if (!queryString) {
         throw new Error('query is required');
       }

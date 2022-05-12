@@ -15,15 +15,17 @@ const config = {
 const client = clickhouse(config);
 
 (async () => {
+  await client.open();
   const res = await client.selectJson('SELECT number FROM system.numbers LIMIT 10;');
   console.log(res);
+  await client.close();
 })();
 ```
 
 ## API
 The clickhouse client exposes several internal methods for usage
 
-### `client.query(query, [params], [extras]): Promise`
+### `client.query(query, ?[params], ?queryId): Promise`
 
 Send an async query to the HTTP interface.
 
@@ -31,23 +33,23 @@ Send an async query to the HTTP interface.
 SQL query statement.
 
 ```javascript
-const res = await client.selectJson(`SELECT * FROM foo WHERE a=? AND b=?`, ['hello', 'world']);
+const res = await client.query(`SELECT * FROM foo WHERE a=? AND b=?`, ['hello', 'world']);
 console.log(res.data, res.meta);
 ```
 
 ##### `params: sqlstring params`
 Used for passing params to the query as
 ```javascript
-client.selectJson(`SELECT * FROM foo WHERE a=? AND b=?`, ['hello', 'world']);
+client.query(`SELECT * FROM foo WHERE a=? AND b=?`, ['hello', 'world']);
 ```
 
-##### `extras: {}`
-Extra options to pass along the query, useful when targeting different databases.
+##### `queryId: string`
+Used as a unique `queryId` for the query.
 ```javascript
-client.selectJson(`SELECT * FROM foo;`, [], {db: 'test'});
+client.query(`SELECT * FROM foo;`, [], 'xxx');
 ```
 
-### `client.selectJson(query, [params], [extras]): Promise<JSON>`
+### `client.selectJson(query, [params], ?queryId): Promise<JSON>`
 Sends an async JSON query to the HTTP interface.
 
 ##### `query: string`
@@ -59,13 +61,13 @@ Used for passing params to the query as
 client.selectJson(`SELECT * FROM foo WHERE a=? AND b=?`, ['hello', 'world']);
 ```
 
-##### `extras: {}`
-Extra options to pass along the query, useful when targeting different databases.
+##### `queryId: string`
+Used as a unique `queryId` for the query.
 ```javascript
-client.selectJson(`SELECT * FROM foo;`, [], {db: 'test'});
+client.selectJson(`SELECT * FROM foo;`, [], 'xxx');
 ```
 
-### `client.insertBatch({table, items}, [extras]): Promise`
+### `client.insertBatch({table, items}, ?queryId): Promise`
 Batch instert for tables.
 
 ##### `{table: string}`
@@ -83,13 +85,9 @@ client.insertBatch({ table: 'batch',items});
 ```
 
 
-##### `extras: {}`
-Extra options to pass along the query, useful when targeting different databases.
+##### `queryId: string`
+Used as a unique `queryId` for the query.
 ```javascript
-client.insertBatch({table: 'foo', items: [{a:1}]}, {db: 'test'});
+client.insertBatch({ table: 'batch',items}, 'xxx')
 ```
 
-### _beta_
-### `client.queryStream({query, params, opaque, factory}): Promise<StreamData>`
-Sends an async query to the HTTP interface and returns a stream.
-Based on the `undici` library this API can be used to stream data from ClickHouse, back to the server.

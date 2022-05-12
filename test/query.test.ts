@@ -173,3 +173,41 @@ test('query sanitizes the params', async () => {
   ]);
   await client.close();
 });
+
+test('query passes JSONEachRow', async () => {
+  const client = clickhouse({...config, db: database});
+
+  await client.open();
+  const list = [
+    'DROP TABLE IF EXISTS json_each',
+    `CREATE TABLE json_each
+    (
+        \`hi\` Int8,
+        \`hello\` String,
+        \`bye\` Int8
+    )
+    ENGINE = MergeTree()
+    ORDER BY hi;
+    `,
+    `INSERT INTO json_each (*) VALUES (1, 'a', 1),(2, 'b', 2);`,
+  ];
+
+  for (const query of list) {
+    const r = await client.query(query);
+
+    await expect(r).eqls({
+      txt: '',
+      status: 'ok',
+      type: 'plain',
+    });
+  }
+
+  const res = await client.query(
+    `SELECT count(*) as counted FROM json_each FORMAT JSONEachRow`,
+  );
+  expect(res.counted).toBe(2);
+  expect(res.status).toBe('ok');
+  expect(res.type).toBe('json');
+
+  await client.close();
+});

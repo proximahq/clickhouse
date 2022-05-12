@@ -49,12 +49,12 @@ export interface Client {
   close: () => void;
   query: (
     queryString: string,
-    params?: never[],
+    params?: any[],
     queryId?: string,
   ) => Promise<any>;
   selectJson: (
     queryString: string,
-    params?: never[],
+    params?: any[],
     queryId?: string,
   ) => Promise<any>;
   insertBatch: (q: BatchTable, queryId?: string) => Promise<any>;

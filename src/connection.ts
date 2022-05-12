@@ -4,6 +4,8 @@ import {getErrorObj} from './error';
 import {cleanupObj, genIds} from './utils';
 import {IncomingHttpHeaders} from 'http';
 import dbg from 'debug';
+import {OK} from './constants';
+import {debug} from 'console';
 
 const log = dbg('proxima:clickhouse-driver:connection');
 
@@ -165,11 +167,20 @@ export class Connection {
           });
           return Promise.reject({error: e});
         }
+        if (!txt) {
+          return {status: 'ok', type: 'plain', txt: ''};
+        }
+        if (txt.trim() === OK) {
+          return {status: 'ok', type: 'plain', txt: OK};
+        }
 
         try {
           const res = JSON.parse(txt);
           return {...res, status: 'ok', type: 'json'};
         } catch (_ignore) {
+          debug("can't parse response as JSON");
+          debug('%o', _ignore);
+          debug('txt %s', txt);
           return {status: 'ok', type: 'plain', txt: txt};
         }
       });
