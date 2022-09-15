@@ -1,15 +1,15 @@
-import {Connection} from './connection';
-import {ClickhouseOptions, BatchTable, Client} from './types';
-import {defaultOpts, JSON_SUFFIX, JSON_EACH_SUFFIX} from './constants';
-import {cleanupObj, cleanup, createPathGen, genIds} from './utils';
-import {format} from 'sqlstring';
+import { Connection } from './connection';
+import { ClickhouseOptions, BatchTable, Client } from './types';
+import { defaultOpts, JSON_SUFFIX, JSON_EACH_SUFFIX } from './constants';
+import { cleanupObj, cleanup, createPathGen, genIds } from './utils';
+import { format } from 'sqlstring';
 import dbg from 'debug';
 
 const log = dbg('proxima:clickhouse-driver:main');
 const factoryId = genIds();
 const createPath = createPathGen();
 
-export type {Client, ClickhouseOptions};
+export type { Client, ClickhouseOptions };
 export const clickhouse = (opts: ClickhouseOptions = defaultOpts): Client => {
   const {
     protocol,
@@ -25,7 +25,7 @@ export const clickhouse = (opts: ClickhouseOptions = defaultOpts): Client => {
     bodyTimeout,
   } = opts;
 
-  const client = new Connection({db, user, password});
+  const client = new Connection({ db, user, password });
 
   const ch = {
     open: () => {
@@ -50,7 +50,7 @@ export const clickhouse = (opts: ClickhouseOptions = defaultOpts): Client => {
         throw new Error('query is required');
       }
       const executableQuery = format(queryString, params);
-      const sessionId = client.getSeesionId();
+      const sessionId = client.getSessionId();
       const path = createPath({
         session_id: sessionId,
         query_id: queryId,
@@ -69,7 +69,7 @@ export const clickhouse = (opts: ClickhouseOptions = defaultOpts): Client => {
       }
       const q = cleanup(queryString ?? '');
       const executableQuery = `${format(q, params)} ${JSON_SUFFIX};`;
-      const sessionId = client.getSeesionId();
+      const sessionId = client.getSessionId();
 
       const path = createPath({
         session_id: sessionId,
@@ -80,7 +80,7 @@ export const clickhouse = (opts: ClickhouseOptions = defaultOpts): Client => {
       });
     },
     insertBatch: (q: BatchTable, queryId = factoryId()) => {
-      const {table, items} = q;
+      const { table, items } = q;
       if (!table) {
         throw new Error('`table` is required for batch insert');
       }
@@ -88,7 +88,7 @@ export const clickhouse = (opts: ClickhouseOptions = defaultOpts): Client => {
         throw new Error('`items` are required for batch insert');
       }
 
-      const sessionId = client.getSeesionId();
+      const sessionId = client.getSessionId();
       const path = createPath({
         query: `INSERT INTO ${table} ${JSON_EACH_SUFFIX}`,
         session_id: sessionId,
