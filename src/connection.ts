@@ -1,11 +1,11 @@
-import type { Dispatcher, Pool } from 'undici';
-import type { URL } from 'url';
-import { getErrorObj } from './error';
-import { cleanupObj, genIds } from './utils';
-import { IncomingHttpHeaders } from 'http';
+import type {Dispatcher, Pool} from 'undici';
+import type {URL} from 'url';
+import {getErrorObj} from './error';
+import {cleanupObj, genIds} from './utils';
+import {IncomingHttpHeaders} from 'http';
 import dbg from 'debug';
-import { OK } from './constants';
-import { debug } from 'console';
+import {OK} from './constants';
+import {debug} from 'console';
 
 const log = dbg('proxima:clickhouse-driver:connection');
 
@@ -94,12 +94,13 @@ export class Connection {
       return;
     }
 
-    const { connections = 128 } = options || {};
+    const {connections = 128} = options || {};
 
     this._hasSessionId = connections !== null;
     if (this._hasSessionId) {
-      this._sessionIds = Array.from({ length: connections || 0 })
-        .map(() => factoryId());
+      this._sessionIds = Array.from({length: connections || 0}).map(() =>
+        factoryId(),
+      );
     }
     log('connection opening');
     log('pool url', url);
@@ -115,9 +116,9 @@ export class Connection {
     log('getData %o', resp);
     try {
       const results = await resp.json();
-      return { ...results, status: 'ok', type: 'json' };
+      return {...results, status: 'ok', type: 'json'};
     } catch (error) {
-      return { status: 'ok', type: 'plain', txt: resp.text };
+      return {status: 'ok', type: 'plain', txt: resp.text};
     }
   }
 
@@ -138,7 +139,7 @@ export class Connection {
     assertHasPool(this._pool);
 
     const len = body
-      ? { 'content-length': Buffer.byteLength(body as string) }
+      ? {'content-length': Buffer.byteLength(body as string)}
       : {};
     const passedHeaders = {
       'Content-Type': 'application/json',
@@ -164,23 +165,23 @@ export class Connection {
         statusCode: resp.statusCode,
         txt,
       });
-      return Promise.reject({ error: e });
+      return Promise.reject({error: e});
     }
     if (!txt) {
-      return { status: 'ok', type: 'plain', txt: '' };
+      return {status: 'ok', type: 'plain', txt: ''};
     }
     if (txt.trim() === OK) {
-      return { status: 'ok', type: 'plain', txt: OK };
+      return {status: 'ok', type: 'plain', txt: OK};
     }
 
     try {
       const res = JSON.parse(txt);
-      return { ...res, status: 'ok', type: 'json' };
+      return {...res, status: 'ok', type: 'json'};
     } catch (_ignore) {
       debug("can't parse response as JSON");
       debug('%o', _ignore);
       debug('txt %s', txt);
-      return { status: 'ok', type: 'plain', txt: txt };
+      return {status: 'ok', type: 'plain', txt: txt};
     }
   }
 
