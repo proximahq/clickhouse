@@ -65,7 +65,7 @@ export class Connection {
     log('connection constructed', dbInfo);
   }
 
-  getSeesionId() {
+  getSessionId() {
     if (this._hasSessionId) {
       return this._sessionIds.shift();
     }

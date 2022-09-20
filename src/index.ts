@@ -50,7 +50,7 @@ export const clickhouse = (opts: ClickhouseOptions = defaultOpts): Client => {
         throw new Error('query is required');
       }
       const executableQuery = format(queryString, params);
-      const sessionId = client.getSeesionId();
+      const sessionId = client.getSessionId();
       const path = createPath({
         session_id: sessionId,
         query_id: queryId,
@@ -69,7 +69,7 @@ export const clickhouse = (opts: ClickhouseOptions = defaultOpts): Client => {
       }
       const q = cleanup(queryString ?? '');
       const executableQuery = `${format(q, params)} ${JSON_SUFFIX};`;
-      const sessionId = client.getSeesionId();
+      const sessionId = client.getSessionId();
 
       const path = createPath({
         session_id: sessionId,
@@ -88,7 +88,7 @@ export const clickhouse = (opts: ClickhouseOptions = defaultOpts): Client => {
         throw new Error('`items` are required for batch insert');
       }
 
-      const sessionId = client.getSeesionId();
+      const sessionId = client.getSessionId();
       const path = createPath({
         query: `INSERT INTO ${table} ${JSON_EACH_SUFFIX}`,
         session_id: sessionId,
