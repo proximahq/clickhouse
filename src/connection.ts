@@ -71,6 +71,7 @@ export class Connection {
     }
     return factoryId();
   }
+
   returnSessionId(id: string) {
     if (this._hasSessionId) {
       this._sessionIds.push(id);
@@ -80,6 +81,7 @@ export class Connection {
   isClosed() {
     return this._pool && this._pool.closed;
   }
+
   /**
    * Initiates a new connection pool
    * @param url
@@ -96,9 +98,9 @@ export class Connection {
 
     this._hasSessionId = connections !== null;
     if (this._hasSessionId) {
-      this._sessionIds = Array(connections)
-        .fill('')
-        .map(() => factoryId());
+      this._sessionIds = Array.from({length: connections || 0}).map(() =>
+        factoryId(),
+      );
     }
     log('connection opening');
     log('pool url', url);
@@ -150,40 +152,37 @@ export class Connection {
     log('RAW body %O', body);
     log('RAW headers %O', passedHeaders);
 
-    return this._pool
-      .request({
-        path: endpoint,
-        method: method,
-        headers: passedHeaders,
-        body: body,
-      })
-      .then(async ({body, statusCode}) => {
-        log('getData');
-        const txt = await body.text();
-        if (statusCode !== 200) {
-          const e = await getErrorObj({
-            statusCode: statusCode,
-            txt,
-          });
-          return Promise.reject({error: e});
-        }
-        if (!txt) {
-          return {status: 'ok', type: 'plain', txt: ''};
-        }
-        if (txt.trim() === OK) {
-          return {status: 'ok', type: 'plain', txt: OK};
-        }
-
-        try {
-          const res = JSON.parse(txt);
-          return {...res, status: 'ok', type: 'json'};
-        } catch (_ignore) {
-          debug("can't parse response as JSON");
-          debug('%o', _ignore);
-          debug('txt %s', txt);
-          return {status: 'ok', type: 'plain', txt: txt};
-        }
+    const resp = await this._pool.request({
+      path: endpoint,
+      method: method,
+      headers: passedHeaders,
+      body: body,
+    });
+    log('getData');
+    const txt = await resp.body.text();
+    if (resp.statusCode !== 200) {
+      const e = await getErrorObj({
+        statusCode: resp.statusCode,
+        txt,
       });
+      return Promise.reject({error: e});
+    }
+    if (!txt) {
+      return {status: 'ok', type: 'plain', txt: ''};
+    }
+    if (txt.trim() === OK) {
+      return {status: 'ok', type: 'plain', txt: OK};
+    }
+
+    try {
+      const res = JSON.parse(txt);
+      return {...res, status: 'ok', type: 'json'};
+    } catch (_ignore) {
+      debug("can't parse response as JSON");
+      debug('%o', _ignore);
+      debug('txt %s', txt);
+      return {status: 'ok', type: 'plain', txt: txt};
+    }
   }
 
   /**
