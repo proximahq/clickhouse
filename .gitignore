@@ -23,3 +23,5 @@ dump.rdb
 coverage
 release
 node_modules
+.test_data
+clickhouse_node

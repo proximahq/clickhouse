@@ -11,3 +11,5 @@ example
 .prettierrc
 .eslintignore
 .eslintrc
+.test_data
+clickhouse_node
