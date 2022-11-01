@@ -36,7 +36,25 @@ afterAll(async t => {
   await ch.close();
 });
 
-test.skip('selectJson parses the values with right types', async () => {
+test('selectJson works with queryId', async t => {
+  const client = clickhouse({...config, db: database});
+  client.open();
+  const queryId = 'test-query-id';
+  const query = `SELECT 1 AS a, 2 AS b, 3 AS c`;
+  const result = await client.selectJson(query, [], queryId);
+  expect(result.data).toEqual([{a: 1, b: 2, c: 3}]);
+});
+
+test('selectJson works with query params', async t => {
+  const client = clickhouse({...config, db: database});
+  client.open();
+  const queryId = 'test-query-id';
+  const query = `SELECT ? AS a, ? AS b, ? AS c`;
+  const result = await client.selectJson(query, [101, 102, 103], queryId);
+  expect(result.data).toEqual([{a: 101, b: 102, c: 103}]);
+});
+
+test('selectJson parses the values with right types', async () => {
   const client = clickhouse({...config, db: database});
   client.open();
   const list = [
@@ -85,13 +103,13 @@ test.skip('selectJson parses the values with right types', async () => {
 
   expect(resAsString.data).eqls([
     {
-      counted: '2',
+      counted: 2,
     },
   ]);
   await client.close();
 });
 
-test.skip('selectJson returns all the metadata', async () => {
+test('selectJson returns all the metadata', async () => {
   const client = clickhouse({...config, db: database});
   await client.open();
   const res = await client.selectJson(
