@@ -12,8 +12,8 @@ const run = async () => {
   });
   await s.open();
   try {
-    const ss = await s.query('SELECT 1 as F');
-    console.log(ss);
+    const test = await s.query('SELECT name FROM system.databases');
+    console.log(test);
   } catch (e) {
     console.log(e);
   }
