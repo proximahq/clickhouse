@@ -1,5 +1,15 @@
 import type {Pool} from 'undici';
 
+export type JsonValue =
+  | string
+  | number
+  | boolean
+  | JsonObject
+  | JsonArray
+  | null;
+export interface JsonArray extends Array<JsonValue> {}
+export type JsonObject = {[Key in string]?: JsonValue};
+
 type QueryStringParams = object | any[];
 export interface ClickhouseOptions {
   // Options Clickhouse
@@ -39,11 +49,6 @@ export interface BatchTable {
   items: any[];
 }
 
-export interface BatchParams {
-  q: BatchTable;
-  queryId?: string;
-}
-
 export interface Client {
   open: () => void;
   close: () => void;
@@ -57,6 +62,9 @@ export interface Client {
     params?: any[],
     queryId?: string,
   ) => Promise<any>;
-  insertBatch: (q: BatchTable, queryId?: string) => Promise<any>;
+  insertBatch: (
+    q: BatchTable,
+    fallback?: (q: BatchTable) => Promise<any>,
+  ) => Promise<any>;
   ping: () => Promise<any>;
 }

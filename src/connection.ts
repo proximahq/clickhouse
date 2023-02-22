@@ -50,6 +50,7 @@ function assertHasPool<A>(pool: A): asserts pool is NonNullable<A> {
 export class Connection {
   private _pool: Pool | undefined;
   private _sessionIds: string[] = [];
+  private _isInFallbackMode = false;
   private _hasSessionId: boolean = true;
 
   private _dbInfoHeaders: Pool | {};
@@ -63,6 +64,18 @@ export class Connection {
     });
 
     log('connection constructed', dbInfo);
+  }
+
+  getFallbackMode() {
+    return this._isInFallbackMode;
+  }
+
+  setFallbackMode() {
+    this._isInFallbackMode = true;
+  }
+
+  removeFallbackMode() {
+    this._isInFallbackMode = false;
   }
 
   getSessionId() {
@@ -97,18 +110,38 @@ export class Connection {
     const {connections = 128} = options || {};
 
     this._hasSessionId = connections !== null;
+
     if (this._hasSessionId) {
       this._sessionIds = Array.from({length: connections || 0}).map(() =>
         factoryId(),
       );
     }
+
     log('connection opening');
     log('pool url', url);
+
     this._pool = new (undici().Pool)(url, {
       keepAliveMaxTimeout: 600e3,
       bodyTimeout: null,
       headersTimeout: null,
       ...options,
+    });
+
+    this._pool?.on('connect', () => {
+      this.removeFallbackMode();
+      log('connection opened');
+    });
+    this._pool?.on('connectionError', () => {
+      this.setFallbackMode();
+      log('connection error');
+    });
+    this._pool?.on('drain', () => {
+      this.setFallbackMode();
+      log('connection drained');
+    });
+    this._pool?.on('disconnect', () => {
+      this.removeFallbackMode();
+      log('connection closed');
     });
   }
 
@@ -130,7 +163,7 @@ export class Connection {
    * @param body
    * @returns
    */
-  async raw<R>(
+  async raw<Results>(
     method: 'POST' | 'GET',
     endpoint: string,
     headers?: Dispatcher.DispatchOptions['headers'],
@@ -158,6 +191,7 @@ export class Connection {
       headers: passedHeaders,
       body: body,
     });
+
     log('getData');
     const txt = await resp.body.text();
     if (resp.statusCode !== 200) {
@@ -176,7 +210,7 @@ export class Connection {
 
     try {
       const res = JSON.parse(txt);
-      return {...res, status: 'ok', type: 'json'};
+      return {...res, status: 'ok', type: 'json'} as Results;
     } catch (_ignore) {
       debug("can't parse response as JSON");
       debug('%o', _ignore);
@@ -192,13 +226,18 @@ export class Connection {
    * @param headers
    * @returns
    */
-  post<R>(
+  post<Results>(
     endpoint: string,
     body?: Dispatcher.DispatchOptions['body'],
     headers?: Dispatcher.DispatchOptions['headers'],
   ) {
+    if (this.getFallbackMode()) {
+      return Promise.reject({
+        error: new Error('Connection is in fallback mode'),
+      });
+    }
     log('POST %s', endpoint);
-    return this.raw<R>('POST', endpoint, headers, body);
+    return this.raw<Results>('POST', endpoint, headers, body);
   }
 
   /**
@@ -208,9 +247,9 @@ export class Connection {
    * @param headers
    * @returns
    */
-  get<R>(path: string, headers?: Dispatcher.DispatchOptions['headers']) {
+  get<Results>(path: string, headers?: Dispatcher.DispatchOptions['headers']) {
     log('GET %s', path);
-    return this.raw<R>('GET', path, headers);
+    return this.raw<Results>('GET', path, headers);
   }
 
   /**

@@ -1,7 +1,7 @@
 const characters =
   'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
 
-export function genHash(length) {
+export function genHash(length: number) {
   let result = ' ';
   const charactersLength = characters.length;
   for (let i = 0; i < length; i++) {

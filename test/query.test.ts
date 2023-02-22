@@ -13,7 +13,7 @@ const config = {
   connections: 2,
 };
 
-beforeAll(async t => {
+beforeAll(async () => {
   try {
     const ch = clickhouse(config);
     await ch.open();
@@ -25,7 +25,7 @@ beforeAll(async t => {
   }
 });
 
-afterAll(async t => {
+afterAll(async () => {
   try {
     const ch = clickhouse(config);
     await ch.open();

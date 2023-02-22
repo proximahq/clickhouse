@@ -1,6 +1,7 @@
 import {TRAILING_SEMI} from './constants';
 import dbg from 'debug';
 import {nanoid} from 'nanoid';
+import type {JsonObject} from './types';
 const log = dbg('proxima:clickhouse-driver:utils');
 
 export const isEmptyObj = (obj: {}) =>
@@ -32,10 +33,11 @@ export const createPathGen = () => {
     output_format_json_quote_64bit_integers: 0,
     enable_http_compression: 1,
   };
-  return function create(obj) {
+  return function create(obj: JsonObject) {
     return createPath({...s, ...obj});
   };
 };
+
 export const createPath = (obj: any) => {
   const cleaned = cleanupObj(obj);
   const str = new URLSearchParams(cleaned).toString();

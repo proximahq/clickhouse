@@ -1,16 +1,8 @@
-import {assert, expect, test, beforeAll, afterAll} from 'vitest';
+import {expect, test, beforeAll, afterAll} from 'vitest';
 import {clickhouse} from '../src';
 import {dbName} from './utils';
 
 const database = dbName();
-
-async function streamToJSON(readable) {
-  let result = '';
-  for await (const chunk of readable) {
-    result += chunk;
-  }
-  return JSON.parse(result);
-}
 
 const config = {
   host: 'localhost',
@@ -21,7 +13,7 @@ const config = {
   connections: 2,
 };
 
-beforeAll(async t => {
+beforeAll(async () => {
   const ch = clickhouse(config);
   await ch.open();
   await ch.query(`DROP DATABASE IF EXISTS ${database}`);
@@ -29,14 +21,14 @@ beforeAll(async t => {
   await ch.close();
 });
 
-afterAll(async t => {
+afterAll(async () => {
   const ch = clickhouse(config);
   await ch.open();
   await ch.query(`DROP DATABASE IF EXISTS ${database}`);
   await ch.close();
 });
 
-test('selectJson works with queryId', async t => {
+test('selectJson works with queryId', async () => {
   const client = clickhouse({...config, db: database});
   client.open();
   const queryId = 'test-query-id';
@@ -45,7 +37,7 @@ test('selectJson works with queryId', async t => {
   expect(result.data).toEqual([{a: 1, b: 2, c: 3}]);
 });
 
-test('selectJson works with query params', async t => {
+test('selectJson works with query params', async () => {
   const client = clickhouse({...config, db: database});
   client.open();
   const queryId = 'test-query-id';

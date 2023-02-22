@@ -15,7 +15,6 @@ export const clickhouse = (opts: ClickhouseOptions = defaultOpts): Client => {
     protocol,
     host,
     port,
-
     db,
     user,
     password,
@@ -40,11 +39,12 @@ export const clickhouse = (opts: ClickhouseOptions = defaultOpts): Client => {
       const u = `${protocol}://${host}:${port}`;
       return client.open(u, p);
     },
+
     close: () => {
       log('closing connection');
       client && client.isClosed() && client.close();
     },
-    //
+
     query: (queryString: string, params: any[] = [], queryId = factoryId()) => {
       if (!queryString) {
         throw new Error('query is required');
@@ -59,7 +59,8 @@ export const clickhouse = (opts: ClickhouseOptions = defaultOpts): Client => {
         client.returnSessionId(sessionId as string);
       });
     },
-    selectJson: (
+
+    selectJson: <Results>(
       queryString: string,
       params: any[] = [],
       queryId = factoryId(),
@@ -75,12 +76,17 @@ export const clickhouse = (opts: ClickhouseOptions = defaultOpts): Client => {
         session_id: sessionId,
         query_id: queryId,
       });
-      return client.post(path, executableQuery).finally(() => {
+      return client.post<Results>(path, executableQuery).finally(() => {
         client.returnSessionId(sessionId as string);
       });
     },
-    insertBatch: (q: BatchTable, queryId = factoryId()) => {
+
+    insertBatch: (
+      q: BatchTable,
+      fallback?: (q: BatchTable, err: any) => Promise<any>,
+    ) => {
       const {table, items} = q;
+      const queryId = factoryId();
       if (!table) {
         throw new Error('`table` is required for batch insert');
       }
@@ -96,9 +102,17 @@ export const clickhouse = (opts: ClickhouseOptions = defaultOpts): Client => {
       });
 
       const executableQuery = JSON.stringify(items);
-      return client.post(path, executableQuery).finally(() => {
-        client.returnSessionId(sessionId as string);
-      });
+      return client
+        .post(path, executableQuery)
+        .catch(err => {
+          if (fallback) {
+            return fallback(q, err);
+          }
+          throw err;
+        })
+        .finally(() => {
+          client.returnSessionId(sessionId as string);
+        });
     },
     ping: () => {
       return client.get('/ping');

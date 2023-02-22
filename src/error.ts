@@ -19,6 +19,7 @@ export async function getErrorObj(opts: ErrorProps): Promise<Error> {
     log('decode stream');
     data = txt;
   } catch (error) {
+    //   @ts-ignore
     data = error?.bufferedData ?? '';
   }
 

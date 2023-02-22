@@ -4,14 +4,6 @@ import {dbName} from './utils';
 
 const database = dbName();
 
-async function streamToJSON(readable) {
-  let result = '';
-  for await (const chunk of readable) {
-    result += chunk;
-  }
-  return JSON.parse(result);
-}
-
 const config = {
   host: 'localhost',
   protocol: 'http',
@@ -21,7 +13,7 @@ const config = {
   connections: 10,
 };
 
-beforeAll(async t => {
+beforeAll(async () => {
   try {
     const ch = clickhouse(config);
     await ch.open();
@@ -33,7 +25,7 @@ beforeAll(async t => {
   }
 });
 
-afterAll(async t => {
+afterAll(async () => {
   const ch = clickhouse(config);
   await ch.open();
   await ch.query(`DROP DATABASE IF EXISTS ${database}`);
@@ -88,7 +80,7 @@ test('insert batch works', async () => {
     {a: 1, b: 'baz', c: 3},
     {a: 1, b: 'bar', c: 3},
   ];
-  const r = await client.insertBatch({
+  await client.insertBatch({
     table: 'batchit',
     items,
   });
@@ -116,6 +108,7 @@ test('insert batch handles errors', async () => {
     });
     expect.fail();
   } catch (e) {
+    // @ts-ignore
     expect(e.error.statusCode).toBe(404);
   }
 
