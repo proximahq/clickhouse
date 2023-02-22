@@ -1,4 +1,4 @@
-import clickhouse from '../../src';
+import {clickhouse} from '../../src';
 
 const database = `test_db`;
 
