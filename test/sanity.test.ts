@@ -1,5 +1,4 @@
-import {expect, test} from 'vitest';
-import {expectType} from 'vite-plugin-vitest-typescript-assert/tsd';
+import {expect, test, expectTypeOf} from 'vitest';
 
 // Ts checking
 export const tested = {
@@ -16,8 +15,8 @@ test('sanity', () => {
 });
 
 test('tsd', () => {
-  expectType<string>(tested.hello);
-  expectType<typeof tested>({
+  expectTypeOf<string>(tested.hello);
+  expectTypeOf<typeof tested>({
     hello: 'you',
     life: 42,
     data: {
