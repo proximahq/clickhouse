@@ -1,8 +1,14 @@
-import {TRAILING_SEMI} from './constants';
 import dbg from 'debug';
+import Stream from 'stream';
 import {nanoid} from 'nanoid';
-import type {JsonObject} from './types';
+import {TRAILING_SEMI, supportedJSONFormats} from './constants';
+import type {JsonObject, DataFormat} from './types';
+
 const log = dbg('proxima:clickhouse-driver:utils');
+
+export function isStream(obj: any): obj is Stream.Readable {
+  return obj !== null && typeof obj.pipe === 'function';
+}
 
 export const isEmptyObj = (obj: {}) =>
   Object.keys(obj).length === 0 && obj.constructor === Object;
@@ -53,3 +59,48 @@ export const genIds = () => {
     return `${str}-${nextReqId.toString(36)}`;
   };
 };
+
+export function mapStream(mapper: (input: any) => any): Stream.Transform {
+  return new Stream.Transform({
+    objectMode: true,
+    transform(chunk, _encoding, callback) {
+      callback(null, mapper(chunk));
+    },
+  });
+}
+
+function pipelineCb(err: NodeJS.ErrnoException | null) {
+  if (err) {
+    log(err);
+  }
+}
+
+export function encodeJSON(value: any, format: DataFormat): string {
+  if ((supportedJSONFormats as readonly string[]).includes(format)) {
+    return JSON.stringify(value) + '\n';
+  }
+  throw new Error(
+    `The client does not support JSON encoding in [${format}] format.`,
+  );
+}
+
+export function encodeValues(
+  values: Stream.Readable,
+  format: DataFormat,
+): Stream.Readable {
+  if (isStream(values)) {
+    if (!values.readableObjectMode) {
+      return values;
+    }
+    // JSON* formats streams
+    return Stream.pipeline(
+      values,
+      mapStream(value => encodeJSON(value, format)),
+      pipelineCb,
+    );
+  }
+
+  throw new Error(
+    `Cannot encode values of type ${typeof values} with ${format} format`,
+  );
+}

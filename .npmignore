@@ -13,3 +13,4 @@ example
 .eslintrc
 .test_data
 clickhouse_node
+example.js

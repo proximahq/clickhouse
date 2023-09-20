@@ -1,11 +1,12 @@
+import {Readable, Writable} from 'stream';
 import type {Dispatcher, Pool} from 'undici';
+import {IncomingHttpHeaders} from 'http';
+import dbg from 'debug';
+import {debug} from 'console';
 import type {URL} from 'url';
 import {getErrorObj} from './error';
 import {cleanupObj, genIds} from './utils';
-import {IncomingHttpHeaders} from 'http';
-import dbg from 'debug';
 import {OK} from './constants';
-import {debug} from 'console';
 
 const log = dbg('proxima:clickhouse-driver:connection');
 
@@ -135,12 +136,8 @@ export class Connection {
       this.setFallbackMode();
       log('connection error');
     });
-    this._pool?.on('drain', () => {
-      this.setFallbackMode();
-      log('connection drained');
-    });
     this._pool?.on('disconnect', () => {
-      this.removeFallbackMode();
+      this.setFallbackMode();
       log('connection closed');
     });
   }
@@ -153,6 +150,51 @@ export class Connection {
     } catch (error) {
       return {status: 'ok', type: 'plain', txt: resp.text};
     }
+  }
+
+  /**
+   * Perform a streaming request
+   * @param endpoint
+   * @param headers
+   * @param stream with data to send
+   * @returns
+   */
+
+  async stream(
+    endpoint: string,
+    headers?: Dispatcher.DispatchOptions['headers'],
+    stream?: Readable,
+  ) {
+    assertHasPool(this._pool);
+
+    const passedHeaders = {
+      'Content-Type': 'application/json',
+      ...(this._dbInfoHeaders as IncomingHttpHeaders),
+      ...headers,
+    };
+    const bufs = [] as Buffer[];
+    return this._pool?.stream(
+      {
+        path: endpoint,
+        method: 'POST',
+        headers: passedHeaders,
+        body: stream,
+        opaque: {bufs},
+        throwOnError: true,
+      },
+      ({statusCode}) => {
+        log('stream %s', endpoint);
+        if (statusCode !== 200) {
+          throw new Error(`Unexpected status code ${statusCode}`);
+        }
+        return new Writable({
+          write(chunk, _encoding, callback) {
+            bufs.push(chunk);
+            callback();
+          },
+        });
+      },
+    );
   }
 
   /**
@@ -199,11 +241,14 @@ export class Connection {
         statusCode: resp.statusCode,
         txt,
       });
+
       return Promise.reject({error: e});
     }
-    if (!txt) {
+
+    if (!txt || txt.trim() === '') {
       return {status: 'ok', type: 'plain', txt: ''};
     }
+
     if (txt.trim() === OK) {
       return {status: 'ok', type: 'plain', txt: OK};
     }

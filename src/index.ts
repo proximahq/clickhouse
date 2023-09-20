@@ -1,9 +1,20 @@
-import {Connection} from './connection';
-import {ClickhouseOptions, BatchTable, Client} from './types';
-import {defaultOpts, JSON_SUFFIX, JSON_EACH_SUFFIX} from './constants';
-import {cleanupObj, cleanup, createPathGen, genIds} from './utils';
 import {format} from 'sqlstring';
 import dbg from 'debug';
+import {Connection} from './connection';
+import {
+  ClickhouseOptions,
+  StreamInsertParams,
+  BatchTable,
+  Client,
+} from './types';
+import {defaultOpts, JSON_SUFFIX, JSON_EACH_SUFFIX} from './constants';
+import {
+  cleanupObj,
+  cleanup,
+  createPathGen,
+  genIds,
+  encodeValues,
+} from './utils';
 
 const log = dbg('proxima:clickhouse-driver:main');
 const factoryId = genIds();
@@ -79,6 +90,41 @@ export const clickhouse = (opts: ClickhouseOptions = defaultOpts): Client => {
       return client.post<Results>(path, executableQuery).finally(() => {
         client.returnSessionId(sessionId as string);
       });
+    },
+
+    insertStream: (
+      q: StreamInsertParams,
+      fallback?: (q: StreamInsertParams, err: any) => Promise<any>,
+    ) => {
+      const {table, items, format} = q;
+      const queryId = factoryId();
+      if (!table) {
+        throw new Error('`table` is required for batch insert');
+      }
+      if (!items) {
+        throw new Error('`items` are required for batch insert');
+      }
+      if (!format) {
+        throw new Error('`format` is required for batch insert');
+      }
+      const sessionId = client.getSessionId();
+      const path = createPath({
+        query: `INSERT INTO ${table} FORMAT ${format}`,
+        session_id: sessionId,
+        query_id: queryId,
+      });
+
+      return client
+        .stream(path, {}, encodeValues(items, format))
+        .catch(err => {
+          if (fallback) {
+            return fallback(q, err);
+          }
+          throw err;
+        })
+        .finally(() => {
+          client.returnSessionId(sessionId as string);
+        });
     },
 
     insertBatch: (

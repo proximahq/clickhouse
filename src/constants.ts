@@ -17,3 +17,41 @@ export const defaultOpts = {
   bodyTimeout: 0,
   size: 128,
 };
+
+export const streamableJSONFormats = [
+  'JSONEachRow',
+  'JSONStringsEachRow',
+  'JSONCompactEachRow',
+  'JSONCompactStringsEachRow',
+  'JSONCompactEachRowWithNames',
+  'JSONCompactEachRowWithNamesAndTypes',
+  'JSONCompactStringsEachRowWithNames',
+  'JSONCompactStringsEachRowWithNamesAndTypes',
+] as const;
+
+export const singleDocumentJSONFormats = [
+  'JSON',
+  'JSONStrings',
+  'JSONCompact',
+  'JSONCompactStrings',
+  'JSONColumnsWithMetadata',
+  'JSONObjectEachRow',
+] as const;
+
+export const supportedJSONFormats = [
+  ...singleDocumentJSONFormats,
+  ...streamableJSONFormats,
+] as const;
+
+export const supportedRawFormats = [
+  'CSV',
+  'CSVWithNames',
+  'CSVWithNamesAndTypes',
+  'TabSeparated',
+  'TabSeparatedRaw',
+  'TabSeparatedWithNames',
+  'TabSeparatedWithNamesAndTypes',
+  'CustomSeparated',
+  'CustomSeparatedWithNames',
+  'CustomSeparatedWithNamesAndTypes',
+] as const;

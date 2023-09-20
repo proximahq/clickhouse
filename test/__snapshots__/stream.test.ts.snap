@@ -1,0 +1,85 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`insertStream works for TSV 1`] = `
+[
+  {
+    "id": 42,
+    "timestamp": "2013-11-21 20:00:00",
+    "value": 22,
+  },
+  {
+    "id": 42,
+    "timestamp": "2013-11-21 20:00:00",
+    "value": 22,
+  },
+  {
+    "id": 43,
+    "timestamp": "2013-11-21 20:00:01",
+    "value": 55,
+  },
+  {
+    "id": 43,
+    "timestamp": "2013-11-21 20:00:01",
+    "value": 55,
+  },
+]
+`;
+
+exports[`insertStream works for multiple streams 1`] = `
+[
+  {
+    "id": 42,
+    "timestamp": "2013-11-21 20:00:00",
+    "value": 22,
+  },
+  {
+    "id": 42,
+    "timestamp": "2013-11-21 20:00:00",
+    "value": 22,
+  },
+  {
+    "id": 43,
+    "timestamp": "2013-11-21 20:00:01",
+    "value": 55,
+  },
+  {
+    "id": 43,
+    "timestamp": "2013-11-21 20:00:01",
+    "value": 55,
+  },
+]
+`;
+
+exports[`insertStream works for named CSV 1`] = `
+[
+  {
+    "a": "Hi",
+    "b": "Hello",
+    "c": 3,
+    "timestamp": "2013-11-21 20:00:00",
+  },
+  {
+    "a": "Foo",
+    "b": "Bar",
+    "c": 4,
+    "timestamp": "2013-11-21 20:00:01",
+  },
+]
+`;
+
+exports[`insertStream works for plain CSV 1`] = `
+[
+  {
+    "a": "Bar a",
+    "b": "Foo B",
+    "c": 4,
+    "timestamp": "2013-11-11 20:00:01",
+  },
+  {
+    "a": "Name a",
+    "b": "Name b",
+    "c": 3,
+    "timestamp": "2013-11-21 20:00:00",
+  },
+]
+`;
