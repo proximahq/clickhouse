@@ -80,7 +80,7 @@ export const clickhouse = (opts: ClickhouseOptions = defaultOpts): Client => {
         throw new Error('query is required');
       }
       const q = cleanup(queryString ?? '');
-      const executableQuery = `${format(q, params)} ${JSON_SUFFIX};`;
+      const executableQuery = `${format(q, params)} ${JSON_SUFFIX}`;
       const sessionId = client.getSessionId();
 
       const path = createPath({
