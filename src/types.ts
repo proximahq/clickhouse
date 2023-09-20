@@ -1,4 +1,10 @@
+import Stream from 'stream';
 import type {Pool} from 'undici';
+import {supportedJSONFormats, supportedRawFormats} from './constants';
+
+export type JSONDataFormat = typeof supportedJSONFormats[number];
+export type RawDataFormat = typeof supportedRawFormats[number];
+export type DataFormat = JSONDataFormat | RawDataFormat;
 
 export type JsonValue =
   | string
@@ -49,6 +55,16 @@ export interface BatchTable {
   items: any[];
 }
 
+export interface StreamInsertParams {
+  table: string;
+  items: Stream.Readable;
+  format?: DataFormat;
+}
+
+export interface StreamInsertResult {
+  query_id: string;
+}
+
 export interface Client {
   open: () => void;
   close: () => void;
@@ -62,6 +78,8 @@ export interface Client {
     params?: any[],
     queryId?: string,
   ) => Promise<any>;
+  insertStream: (q: StreamInsertParams) => Promise<StreamInsertResult>;
+
   insertBatch: (
     q: BatchTable,
     fallback?: (q: BatchTable) => Promise<any>,

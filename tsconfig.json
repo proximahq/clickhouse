@@ -21,7 +21,8 @@
     "sourceMap": true,
     "forceConsistentCasingInFileNames": true,
     "declaration": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "types": ["vitest/globals"]
   },
   "exclude": [
     "dist",

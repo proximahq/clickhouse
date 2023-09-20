@@ -54,8 +54,17 @@ test('query works as expected', async () => {
     )
     ENGINE=MergeTree(date, (mark, time), 8192)`,
     'OPTIMIZE TABLE foo PARTITION 201807 FINAL',
-    `
-  			SELECT
+    `CREATE OR REPLACE TABLE test
+      (
+          id UInt64,
+          size_bytes Int64,
+          size String Alias formatReadableSize(size_bytes)
+      )
+      ENGINE = MergeTree
+      ORDER BY id
+    `,
+    `INSERT INTO test Values (1, 4678899);`,
+    `SELECT
   				*
   			FROM foo
   			LIMIT 10
