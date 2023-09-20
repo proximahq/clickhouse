@@ -1,4 +1,5 @@
 import {Readable, Writable} from 'stream';
+import {EventEmitter} from 'node:events';
 import type {Dispatcher, Pool} from 'undici';
 import {IncomingHttpHeaders} from 'http';
 import dbg from 'debug';
@@ -9,6 +10,8 @@ import {cleanupObj, genIds} from './utils';
 import {OK} from './constants';
 
 const log = dbg('proxima:clickhouse-driver:connection');
+
+class PoolEmitter extends EventEmitter {}
 
 const factoryId = genIds();
 
@@ -50,6 +53,7 @@ function assertHasPool<A>(pool: A): asserts pool is NonNullable<A> {
  */
 export class Connection {
   private _pool: Pool | undefined;
+  private emitter: PoolEmitter = new PoolEmitter();
   private _sessionIds: string[] = [];
   private _isInFallbackMode = false;
   private _hasSessionId: boolean = true;
@@ -64,7 +68,7 @@ export class Connection {
       'X-ClickHouse-Key': dbInfo?.password,
     });
 
-    log('connection constructed', dbInfo);
+    log('connection constructed', this._dbInfoHeaders);
   }
 
   getFallbackMode() {
@@ -96,6 +100,10 @@ export class Connection {
     return this._pool && this._pool.closed;
   }
 
+  on(eventName: string, cb: (...args: any[]) => void) {
+    log('on event: %s', eventName);
+    this.emitter.on(eventName, cb);
+  }
   /**
    * Initiates a new connection pool
    * @param url
@@ -129,23 +137,32 @@ export class Connection {
     });
 
     this._pool?.on('connect', () => {
+      this.emitter.emit('connect');
       this.removeFallbackMode();
       log('connection opened');
     });
     this._pool?.on('connectionError', () => {
+      this.emitter.emit('connectionError');
       this.setFallbackMode();
       log('connection error');
     });
     this._pool?.on('disconnect', () => {
+      this.emitter.emit('disconnect');
       this.setFallbackMode();
       log('connection closed');
     });
+
+    this._pool?.on('drain', () => {
+      this.emitter.emit('drain');
+    });
+
+    return this._pool;
   }
 
   async getData(resp: Dispatcher.ResponseData['body']) {
     log('getData %o', resp);
     try {
-      const results = await resp.json();
+      const results = (await resp.json()) as any;
       return {...results, status: 'ok', type: 'json'};
     } catch (error) {
       return {status: 'ok', type: 'plain', txt: resp.text};

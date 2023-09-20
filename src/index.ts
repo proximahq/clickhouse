@@ -21,6 +21,7 @@ const factoryId = genIds();
 const createPath = createPathGen();
 
 export type {Client, ClickhouseOptions};
+
 export const clickhouse = (opts: ClickhouseOptions = defaultOpts): Client => {
   const {
     protocol,
@@ -38,6 +39,7 @@ export const clickhouse = (opts: ClickhouseOptions = defaultOpts): Client => {
   const client = new Connection({db, user, password});
 
   const ch = {
+    on: client.on.bind(client),
     open: () => {
       log('opening connection');
 

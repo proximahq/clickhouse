@@ -1,7 +1,6 @@
 import {expect, test, beforeAll, afterAll} from 'vitest';
 import {clickhouse} from '../src';
 import {dbName} from './utils';
-import {e} from 'vitest/dist/reporters-cb94c88b';
 
 const database = dbName();
 
