@@ -131,7 +131,7 @@ export class Connection {
 
     this._pool = new (undici().Pool)(url, {
       keepAliveMaxTimeout: 600e3,
-      bodyTimeout: null,
+      bodyTimeout: 0,
       headersTimeout: null,
       ...options,
     });
@@ -148,7 +148,6 @@ export class Connection {
     });
     this._pool?.on('disconnect', () => {
       this.emitter.emit('disconnect');
-      this.setFallbackMode();
       log('connection closed');
     });
 
