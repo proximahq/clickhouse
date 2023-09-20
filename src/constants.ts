@@ -1,5 +1,5 @@
 export const TRAILING_SEMI = /;+$/;
-export const JSON_SUFFIX = 'FORMAT JSON;';
+export const JSON_SUFFIX = 'FORMAT JSON';
 export const JSON_EACH_SUFFIX = 'FORMAT JSONEachRow';
 
 export const OK = 'Ok.';
