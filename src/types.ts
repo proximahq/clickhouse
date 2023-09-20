@@ -2,8 +2,8 @@ import Stream from 'stream';
 import type {Pool} from 'undici';
 import {supportedJSONFormats, supportedRawFormats} from './constants';
 
-export type JSONDataFormat = typeof supportedJSONFormats[number];
-export type RawDataFormat = typeof supportedRawFormats[number];
+export type JSONDataFormat = (typeof supportedJSONFormats)[number];
+export type RawDataFormat = (typeof supportedRawFormats)[number];
 export type DataFormat = JSONDataFormat | RawDataFormat;
 
 export type JsonValue =
@@ -68,6 +68,7 @@ export interface StreamInsertResult {
 export interface Client {
   open: () => void;
   close: () => void;
+  on: (eventName: string, listener: (...args: any[]) => void) => void;
   query: (
     queryString: string,
     params?: any[],

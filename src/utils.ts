@@ -26,7 +26,7 @@ export const cleanupObj = (obj: any = {}) => {
     }
     return {...acc, [k]: obj[k]};
   }, {});
-  log('obj: %o', obj);
+  log('original obj: %o', obj);
   log('cleanupObj: %o', s);
   return s;
 };
